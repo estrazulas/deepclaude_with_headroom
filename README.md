@@ -117,7 +117,7 @@ Adds the `deepclaude` and `deepclaudehr` terminal commands.
 
 ```bash
 deepclaude           → Claude Code via DeepSeek (cheaper)
-deepclaudehr         → deepclaude + Headroom proxy (compression on)
+deepclaudehr         → deepclaude + Headroom proxy (cheaper + compression on)
 deepclaude --status  → key and backend status
 deepclaude --cost    → pricing comparison
 deepclaude -b or     → use OpenRouter backend
