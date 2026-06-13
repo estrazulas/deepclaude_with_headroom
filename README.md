@@ -95,7 +95,7 @@ Adds the `deepclaude` and `deepclaudehr` terminal commands.
 ## 📋 Prerequisites
 
 - **Claude Code** installed (`npm install -g @anthropic-ai/claude-code`)
-- **jq** (`sudo apt install jq`)
+- **Python 3** + **jq** (`sudo apt install python3 jq`)
 - **DeepSeek API Key** — sign up at [platform.deepseek.com](https://platform.deepseek.com)
 
 ---
