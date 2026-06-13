@@ -17,6 +17,19 @@ Run **Claude Code** using the **DeepSeek API** (drastically cheaper) with the **
 
 ---
 
+### Original projects
+
+This installer is a wrapper that configures and automates two awesome open-source projects:
+
+| Project | Author | Repo |
+|---------|--------|------|
+| **DeepClaude** | [@aattaran](https://github.com/aattaran) | [github.com/aattaran/deepclaude](https://github.com/aattaran/deepclaude) |
+| **Headroom** | [@chopratejas](https://github.com/chopratejas) | [github.com/chopratejas/headroom](https://github.com/chopratejas/headroom) |
+
+DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context compression, caching, code-aware optimization, and MCP support on top.
+
+---
+
 ## 📦 What it installs
 
 | Component | Description |
