@@ -1,19 +1,16 @@
 #!/usr/bin/env bash
-# Instalador Headroom + Comandos Claude Code
-# Uso: bash install.sh [--dry-run] [--full] [--headroomcomplete]
-#   --full               Instala também DeepClaude (deepclaude + deepclaudehr)
-#   --headroomcomplete   Instala headroom-ai com todos os extras ([all]) sem perguntar
+# Instalador Headroom + DeepClaude + Comandos Claude Code
+# Uso: bash install.sh [--dry-run] [--full]
+#   --full               Instala headroom-ai com todos os extras ([all]) sem perguntar
 
 set -euo pipefail
 
 DRY_RUN=false
 FULL=false
-HEADROOM_COMPLETE=false
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --full) FULL=true ;;
-    --headroomcomplete) HEADROOM_COMPLETE=true ;;
   esac
 done
 
@@ -28,7 +25,7 @@ SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
 MODE="light"
 EXTRAS="proxy,code,mcp"
-if $HEADROOM_COMPLETE; then
+if $FULL; then
   MODE="complete"
   EXTRAS="all"
 fi
@@ -119,7 +116,7 @@ else
   echo ""
   if $DRY_RUN; then
     echo "[dry-run] Instalaria headroom-ai[$EXTRAS]"
-  elif $HEADROOM_COMPLETE; then
+  elif $FULL; then
     echo "  Modo completo: instalando headroom-ai[all]..."
     if command -v pipx &>/dev/null; then
       pipx install "headroom-ai[all]"
@@ -242,11 +239,33 @@ else
 fi
 
 # ═══════════════════════════════════════════
-# 5. HEALTH CHECK
+# 5. DEEPCLAUDE
 # ═══════════════════════════════════════════
 
 echo ""
-echo "━━━ 5. Health Check ━━━"
+echo "━━━ 5. Instalando DeepClaude ━━━"
+
+if [ -f "$DC_SRC/deepclaude.sh" ]; then
+  if $DRY_RUN; then
+    echo "[dry-run] Instalaria: /usr/local/bin/deepclaude (+x)"
+    echo "[dry-run] Instalaria: /usr/local/bin/deepclaudehr (+x)"
+  else
+    sudo cp "$DC_SRC/deepclaude.sh" /usr/local/bin/deepclaude
+    sudo cp "$DC_SRC/deepclaudehr.sh" /usr/local/bin/deepclaudehr
+    sudo chmod +x /usr/local/bin/deepclaude /usr/local/bin/deepclaudehr
+    echo "✓ /usr/local/bin/deepclaude"
+    echo "✓ /usr/local/bin/deepclaudehr"
+  fi
+else
+  echo "⚠️  Scripts deepclaude não encontrados em $DC_SRC — pulando"
+fi
+
+# ═══════════════════════════════════════════
+# 6. HEALTH CHECK
+# ═══════════════════════════════════════════
+
+echo ""
+echo "━━━ 6. Health Check ━━━"
 
 if command -v headroom &>/dev/null; then
   sleep 1
@@ -263,30 +282,6 @@ else
   echo "⚠️  Headroom CLI não encontrado no PATH."
 fi
 
-# ═══════════════════════════════════════════
-# 6. DEEPCLAUDE (apenas com --full)
-# ═══════════════════════════════════════════
-
-if $FULL; then
-  echo ""
-  echo "━━━ 6. [--full] Instalando DeepClaude ━━━"
-
-  if [ -f "$DC_SRC/deepclaude.sh" ]; then
-    if $DRY_RUN; then
-      echo "[dry-run] Instalaria: /usr/local/bin/deepclaude (+x)"
-      echo "[dry-run] Instalaria: /usr/local/bin/deepclaudehr (+x)"
-    else
-      sudo cp "$DC_SRC/deepclaude.sh" /usr/local/bin/deepclaude
-      sudo cp "$DC_SRC/deepclaudehr.sh" /usr/local/bin/deepclaudehr
-      sudo chmod +x /usr/local/bin/deepclaude /usr/local/bin/deepclaudehr
-      echo "✓ /usr/local/bin/deepclaude"
-      echo "✓ /usr/local/bin/deepclaudehr"
-    fi
-  else
-    echo "⚠️  Scripts deepclaude não encontrados em $DC_SRC — pulando"
-  fi
-fi
-
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 echo "  ✅ Instalação concluída!"
@@ -297,12 +292,10 @@ echo "    systemctl --user status headroom.service"
 echo "    curl localhost:8787/health"
 echo "    /headroom_usage (dentro do Claude Code)"
 echo ""
-if $FULL; then
-  echo "  DeepClaude:"
-  echo "    deepclaude       → Claude Code via DeepSeek"
-  echo "    deepclaudehr     → deepclaude + Headroom proxy"
-  echo ""
-fi
+echo "  DeepClaude:"
+echo "    deepclaude       → Claude Code via DeepSeek"
+echo "    deepclaudehr     → deepclaude + Headroom proxy"
+echo ""
 echo "  Comandos Claude Code disponíveis:"
 echo "    /mem               → listar memórias"
 echo "    /headroom_usage  → dashboard de economia"

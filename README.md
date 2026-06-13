@@ -55,12 +55,10 @@ cd deepclaude_with_headroom
 
 | Flag | Headroom | DeepClaude | Best for |
 |------|----------|:----------:|:---------|
-| *(none)* | ⚡ Light `[proxy,code,mcp]` *(prompts)* | ❌ | Just proxy + commands |
-| `--headroomcomplete` | 🔥 Complete `[all]` *(auto)* | ❌ | All headroom extras |
-| `--full` | ⚡ Light `[proxy,code,mcp]` *(prompts)* | ✅ | Proxy + DeepClaude |
-| `--headroomcomplete --full` | 🔥 Complete `[all]` *(auto)* | ✅ | Everything |
+| *(none)* | ⚡ Light `[proxy,code,mcp]` *(prompts)* | ✅ | Proxy + DeepClaude |
+| `--full` | 🔥 Complete `[all]` *(auto)* | ✅ | Everything |
 
-### ⚡ Default — Light headroom + commands
+### ⚡ Default — Light headroom + DeepClaude
 
 ```bash
 bash install.sh
@@ -69,26 +67,18 @@ bash install.sh
 Installs `headroom-ai[proxy,code,mcp]` (~100 MB), prompting before each step:
 - Headroom CLI (via pipx)
 - Headroom proxy as a systemd service (auto-start)
+- `deepclaude` and `deepclaudehr` terminal commands
 - `/headroom_usage` and `/mem` slash commands
 - `DEEPSEEK_API_KEY` in your shell config
 - Health check at the end
 
-### 🔥 Complete (all headroom extras)
+### 🔥 Full (all headroom extras)
 
 ```bash
-bash install.sh --headroomcomplete
+bash install.sh --full
 ```
 
-Installs `headroom-ai[all]` (~2 GB) without prompting — includes vector memory, image support, ML, etc.
-
-### 🚀 Add DeepClaude
-
-```bash
-bash install.sh --full                    # light + DeepClaude
-bash install.sh --headroomcomplete --full # complete + DeepClaude
-```
-
-Adds the `deepclaude` and `deepclaudehr` terminal commands.
+Installs `headroom-ai[all]` (~2 GB) without prompting — includes vector memory, image support, ML, etc. Plus everything from the default install.
 
 ---
 
