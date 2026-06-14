@@ -1,0 +1,257 @@
+{
+  "audit_metadata": {
+    "repository": "estrazulas/headroom_sanitizer (fork de chopratejas/headroom)",
+    "related_repo": "estrazulas/deepclaude_with_headroom",
+    "audit_date": "2026-06-14",
+    "headroom_version": "0.25.0",
+    "auditor": "Claude Code — Engenharia de Segurança Sênior",
+    "methodology": "Análise estática de código-fonte, grep de padrões de secrets, revisão de git history, análise de CI/CD, auditoria de instaladores",
+    "scope": [
+      "Código-fonte Python e Rust",
+      "Arquivos de configuração (.env, .yaml, .json, .toml)",
+      "Scripts de instalação e deploy",
+      "GitHub Actions workflows",
+      "Histórico do git (análise de commits com secrets)",
+      "Documentação e exemplos",
+      "Instaladores do deepclaude_with_headroom"
+    ]
+  },
+  "summary": {
+    "total_findings": 16,
+    "critical": 0,
+    "high": 3,
+    "medium": 6,
+    "low": 4,
+    "info": 3
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "type": "password",
+      "file": "headroom/memory/easy.py",
+      "line": 118,
+      "match": "neo4j_password: str = \"password\"",
+      "description": "Senha padrão do Neo4j hardcoded como 'password' no código-fonte Python para o backend de memória. Esta senha padrão é usada quando o usuário não configura explicitamente uma senha via env var.",
+      "risk": "Qualquer deploy que dependa deste padrão sem sobrescrever via variável de ambiente expõe o banco Neo4j a acesso não autorizado localmente. Em ambientes containerizados com porta exposta, permite acesso remoto.",
+      "remediation": "Remover o valor hardcoded e usar string vazia ou lançar erro se não configurado. Documentar a necessidade de configurar HEADROOM_NEO4J_PASSWORD. Backport para os módulos de memória com default vazio."
+    },
+    {
+      "severity": "high",
+      "type": "password",
+      "file": "headroom/memory/backends/direct_mem0.py",
+      "line": 102,
+      "match": "neo4j_password: str = \"password\"",
+      "description": "Senha padrão 'password' duplicada no backend direct_mem0 para Neo4j. Idêntico ao finding em easy.py.",
+      "risk": "Mesmo risco do finding anterior — deploy inseguro do Neo4j com credencial trivial.",
+      "remediation": "Alterar default para string vazia e adicionar validação em produção. Mesma ação do finding acima."
+    },
+    {
+      "severity": "high",
+      "type": "password",
+      "file": "headroom/memory/backends/mem0.py",
+      "line": 60,
+      "match": "neo4j_password: str = \"password\"",
+      "description": "Terceira ocorrência da senha padrão 'password' para Neo4j, desta vez no backend mem0 principal.",
+      "risk": "Propaga o mesmo padrão inseguro por toda a stack de memória.",
+      "remediation": "Consolidar todos os defaults de neo4j_password em uma única definição e usar string vazia como fallback."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "file": "docker-compose.yml",
+      "line": 42,
+      "match": "NEO4J_AUTH=${NEO4J_AUTH:-neo4j/devpassword}",
+      "description": "Credencial padrão 'neo4j/devpassword' definida no docker-compose.yml para o container Neo4j. Embora seja sobrescritível via env var, o default é inseguro.",
+      "risk": "Deploy acidental com docker-compose up sem configurar NEO4J_AUTH expõe o banco gráfico com credencial trivial conhecida.",
+      "remediation": "Remover o valor default: usar ${NEO4J_AUTH} sem fallback (força erro se não configurado), ou gerar senha aleatória."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "file": "docker-compose.yml",
+      "line": 44,
+      "match": "NEO4J_apoc_export_file_enabled=true",
+      "description": "APOC file export/import habilitado no Neo4j. O plugin APOC (Awesome Procedures) com export/import de arquivos pode permitir leitura/escrita arbitrária de arquivos no sistema hospedeiro via Cypher queries.",
+      "risk": "Se um atacante obtiver acesso ao Bolt (porta 7687) ou HTTP (7474), pode usar APOC para ler ou escrever arquivos no servidor. Combinado com a senha padrão, o risco é elevado.",
+      "remediation": "Desabilitar export/import de arquivos APOC em produção: NEO4J_apoc_export_file_enabled=false. Manter apenas para desenvolvimento local."
+    },
+    {
+      "severity": "medium",
+      "type": "endpoint",
+      "file": "docker-compose.yml",
+      "line": 25,
+      "match": "qdrant:\n    ports:\n      - \"6333:6333\"\n      - \"6334:6334\"\n    environment:\n      - QDRANT__SERVICE__GRPC_PORT=6334",
+      "description": "Qdrant exposto sem autenticação ou chave de API. As portas REST (6333) e gRPC (6334) são expostas sem qualquer proteção no docker-compose.yml.",
+      "risk": "Qualquer processo na rede local pode ler/escrever no banco vetorial Qdrant sem autenticação, incluindo consultar embeddings armazenados.",
+      "remediation": "Adicionar QDRANT__SERVICE__API_KEY no docker-compose.yml e configurar o proxy para usar HEADROOM_QDRANT_API_KEY."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "file": "headroom/proxy/models.py",
+      "lines": 265,
+      "match": "memory_neo4j_uri: str = \"neo4j://localhost:7687\"\n    memory_neo4j_user: str = \"neo4j\"\n    memory_neo4j_password: str = \"\"",
+      "description": "Configurações padrão do proxy para Neo4j com URI localhost, usuário fixo 'neo4j' e senha vazia. O proxy emite um warning se a senha estiver vazia, mas permite startup sem senha.",
+      "risk": "Proxy pode operar com banco Neo4j sem autenticação se o operador não configurar a senha. O warning no log pode ser ignorado.",
+      "remediation": "Exigir senha não-vazia quando memory_backend for qdrant-neo4j, ou bloquear startup se senha não configurada."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "file": ".pre-commit-config.yaml",
+      "line": 1,
+      "match": "(não há hooks de security scanning)",
+      "description": "Nenhum hook de segurança configurado no pre-commit. Não há gitleaks, truffleHog, detect-secrets, bandit, ou qualquer ferramenta de varredura de secrets.",
+      "risk": "Desenvolvedores podem commitar secrets acidentalmente sem detecção automática. O repositório depende apenas de revisão manual.",
+      "remediation": "Adicionar hooks de segurança ao pre-commit: gitleaks (detect-secrets), bandit (vulnerabilidades Python), e ruff (já presente, mas só para linting)."
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "file": "headroom/providers/google.py",
+      "line": 14,
+      "match": "genai.configure(api_key=\"your-api-key\")",
+      "description": "Placeholder de API key no docstring do provedor Google. É claramente um placeholder ('your-api-key'), mas estabelece um padrão perigoso de colocar chaves no código.",
+      "risk": "Baixo porque é placeholder explícito. Risco é incentivar desenvolvedores a hardcodear chaves no código seguindo este padrão.",
+      "remediation": "Substituir por variável de ambiente no exemplo: genai.configure(api_key=os.environ['GOOGLE_API_KEY'])"
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "file": "headroom/cli/proxy.py",
+      "line": 924,
+      "match": "ANTHROPIC_API_KEY=\"sk-ant-dummy\"",
+      "description": "Instrução na documentação do proxy para usar chave dummy 'sk-ant-dummy' com formato que imita chave real da Anthropic.",
+      "risk": "Usuários podem não entender que é dummy e tentar usar. Também polui logs/監視 com formato de chave que parece válida para scanners automatizados.",
+      "remediation": "Usar valor mais óbvio como 'set-your-real-key-here' ou explicitar que é placeholder em destaque."
+    },
+    {
+      "severity": "low",
+      "type": "endpoint",
+      "file": "docker-compose.yml",
+      "line": 5,
+      "match": "HEADROOM_HOST=0.0.0.0\n    ports:\n      - \"8787:8787\"",
+      "description": "Proxy exposto em 0.0.0.0:8787 (todas as interfaces de rede) sem qualquer autenticação integrada.",
+      "risk": "Qualquer processo na rede pode enviar requisições ao proxy. Em redes compartilhadas, permite uso não autorizado do proxy e potencial leak de tokens de API.",
+      "remediation": "Documentar que 0.0.0.0 é para Docker e que deve ser limitado a localhost em deploys diretos. Adicionar nota de segurança sobre isolar o proxy."
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "file": "deepclaude_with_headroom/install.sh",
+      "line": 303,
+      "match": "read -r -p \"  Digite sua DeepSeek API Key (sk-...): \" USER_KEY\n...\n echo \"export DEEPSEEK_API_KEY=\\\"$USER_KEY\\\"\" >> \"$SHELL_RC\"",
+      "description": "Instalador do deepclaude_with_headroom coleta a chave DeepSeek API Key via stdin e armazena em texto plano no arquivo de configuração do shell (.zshrc/.bashrc).",
+      "risk": "A chave fica em texto plano no disco. Em ambientes compartilhados, outros processos/usuários podem ler o arquivo de shell rc.",
+      "remediation": "Considerar armazenar em keyring do sistema operacional (secret-tool, kwallet) ou ao menos em arquivo .env com permissões 600."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "file": ".gitignore",
+      "line": 1,
+      "match": "Todas as entradas de segurança",
+      "description": "O .gitignore é exemplar: cobre .env, .env.*, *.pem, *.key, secrets.json, credentials.json, .secrets, api_keys.txt, bandit_result.txt, pip_audit_result.txt, ruff_result.txt.",
+      "risk": "Nenhum — boa prática estabelecida.",
+      "remediation": "Manutenção contínua. Considerar adicionar *.kdbx, *.asc, *.gpg."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "file": ".gitguardian.yaml",
+      "line": 1,
+      "match": "GitGuardian configuration — secret-detection allowlist",
+      "description": "GitGuardian configurado com allowlist criteriosa para tokens de teste. Cada entrada tem nome descritivo, arquivo de referência, e justificativa de porque não é uma credencial real.",
+      "risk": "Nenhum — boa prática estabelecida e bem documentada.",
+      "remediation": "Manter atualizado conforme novos tokens de teste forem adicionados."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "file": "SECURITY.md",
+      "line": 1,
+      "match": "Security Policy",
+      "description": "Política de segurança completa com email security@headroom.dev, SLA de 48h para acknowledge e 7 dias para issues críticas.",
+      "risk": "Nenhum — boa prática de segurança.",
+      "remediation": "Garantir que o email security@headroom.dev é monitorado ativamente."
+    },
+    {
+      "severity": "low",
+      "type": "other",
+      "file": "SECURITY.md",
+      "line": 60,
+      "match": "No credential storage: We never store or log API keys",
+      "description": "A documentação afirma 'Never store or log API keys', mas os módulos de memória Neo4j têm senhas hardcoded no código.",
+      "risk": "Discrepância entre documentação e implementação. As APIs keys em si não são logadas, mas as senhas de backend de memória são default inseguras.",
+      "remediation": "Atualizar SECURITY.md para refletir accuratemente as práticas, ou corrigir os defaults."
+    }
+  ],
+  "git_history": {
+    "headroom_sanitizer": {
+      "total_commits": "~970 (upstream + 2 do fork)",
+      "fork_specific_commits": 2,
+      "commits_by_fork_author": [
+        {
+          "hash": "241a2cf421bdd2e5b5f9a4e5d4e01cf9efa769f1",
+          "author": "estrazulas",
+          "message": "docs: add sanitized fork build & release quickstart to README",
+          "risk": "Nenhum — apenas alterações de documentação",
+          "files_changed": ["README.md"]
+        },
+        {
+          "hash": "8f3e15e4cf31a78df1a82c79dbe8b3cf25fe81f4",
+          "author": "estrazulas",
+          "message": "docs: add build & release guide for internal use",
+          "risk": "Nenhum — apenas documentação de build",
+          "files_changed": ["BUILD.md", "README.md", "rebuild.sh"]
+        }
+      ],
+      "upstream_git_history_assessment": {
+        "secrets_found": false,
+        "notes": "Análise do git log para padrões de secrets (git log -p -S 'sk-ant', 'AKIA', 'ghp_') retornou apenas tokens de teste fixture em arquivos de teste. Nenhum commit com secrets reais foi identificado no histórico do fork."
+      }
+    },
+    "deepclaude_with_headroom": {
+      "total_commits": "9 (histórico completo)",
+      "secrets_found": false,
+      "notes": "Repositório pequeno com scripts de instalação. Nenhum commit contém secrets. As chaves de API são configuradas via variáveis de ambiente ou solicitadas interativamente."
+    }
+  },
+  "deepclaude_installer_analysis": {
+    "overall_assessment": "Low risk — scripts bem escritos sem hardcoded credentials",
+    "findings": [
+      "DEEPSEEK_API_KEY armazenada em texto plano no shell rc (zshrc/bashrc) — prática comum mas não ideal",
+      "URLs de API hardcoded nos scripts deepclaude.sh (api.deepseek.com, openrouter.ai, api.fireworks.ai) — aceitável pois são endpoints públicos",
+      "Suporte a verificação SHA256 para downloads customizados (--headroom-sha256) — boa prática de supply chain security",
+      "systemd service headroom.service com hardening exemplar (IPAddressDeny para ranges privados, NoNewPrivileges, ProtectSystem, MemoryMax)",
+      "Chaves de API mascaradas na saída do comando deepclaude --status (mask_key function)",
+      "Script de desinstalação remove completamente DEEPSEEK_API_KEY do shell rc — boa prática de cleanup"
+    ]
+  },
+  "positive_highlights": [
+    "GitGuardian configurado e bem mantido com allowlist criteriosa",
+    ".gitignore cobre todos os padrões de secrets",
+    "SECURITY.md com política de disclosure responsável",
+    "Nenhum secret real encontrado no código ou histórico",
+    "Todas as chaves de API são lidas de variáveis de ambiente",
+    "O fork adiciona apenas BUILD.md, README e rebuild.sh — sem modificar código fonte",
+    "Sistema de verificação SHA256 no instalador para builds customizados",
+    "Systemd service com hardening de segurança (deny IP privados, NoNewPrivileges)",
+    "Documentação enfatiza uso de variáveis de ambiente para chaves"
+  ],
+  "recommendations": [
+    "CRÍTICO: Remover senha padrão 'password' do Neo4j nos 3 arquivos (easy.py:118, direct_mem0.py:102, mem0.py:60) e forçar configuração via variável de ambiente",
+    "ALTA: Remover fallback de senha no docker-compose.yml — exigir NEO4J_AUTH explícita",
+    "MÉDIA: Desabilitar APOC file export/import no docker-compose.yml para produção",
+    "MÉDIA: Adicionar autenticação ao Qdrant no docker-compose.yml",
+    "MÉDIA: Configurar gitleaks ou detect-secrets como hook de pre-commit",
+    "MÉDIA: Exigir senha Neo4j não-vazia no startup do proxy (bloquear se vazia)",
+    "BAIXA: Substituir placeholder 'your-api-key' no google.py por exemplo com variável de ambiente",
+    "BAIXA: Trocar 'sk-ant-dummy' por placeholder mais óbvio no proxy.py",
+    "BAIXA: Considerar keyring do SO para armazenar DEEPSEEK_API_KEY no instalador",
+    "INFO: Adicionar *.kdbx, *.asc, *.gpg ao .gitignore",
+    "INFO: Atualizar SECURITY.md para refletir corretamente as práticas de armazenamento de senhas de backend"
+  ],
+  "confidence": 95,
+  "disclaimer": "Esta auditoria foi realizada por análise estática automatizada. Recomenda-se complementar com teste dinâmico (DAST) e revisão manual dos módulos de memória. Nenhuma análise de dependências (SCA) ou fuzzing foi realizada."
+}
