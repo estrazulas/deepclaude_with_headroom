@@ -10,7 +10,7 @@ set -euo pipefail
 DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
-HEADROOM_VERSION="0.25.1"  # versão pinada que sabemos que funciona
+HEADROOM_VERSION="0.25.0"  # versão pinada que sabemos que funciona
 HEADROOM_SHA256=""  # hash esperado do .whl (opcional, recomendado com --headroom-release)
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -228,14 +228,14 @@ if ! $DRY_RUN && command -v headroom &>/dev/null; then
   INSTALLED_VER=$(headroom --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
   if [ -z "$INSTALLED_VER" ]; then
     echo "⚠️  Não foi possível verificar a versão instalada do headroom."
+  elif [ -n "$HEADROOM_RELEASE" ]; then
+    echo "✓ Post-check: headroom $INSTALLED_VER (release customizada)"
   elif [ "$INSTALLED_VER" != "$HEADROOM_VERSION" ]; then
     echo "⚠️  Versão instalada ($INSTALLED_VER) ≠ esperada ($HEADROOM_VERSION)."
     echo "   Execute 'headroom --version' para confirmar."
   else
     echo "✓ Post-check: headroom $INSTALLED_VER instalado corretamente"
   fi
-  # Cleanup temp directory
-  [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
 fi
 
 # ═══════════════════════════════════════════
