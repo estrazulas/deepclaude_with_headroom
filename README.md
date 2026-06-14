@@ -59,15 +59,31 @@ cd deepclaude_with_headroom
 | `--full` | 🔥 Complete `[all]` *(auto)* | ✅ | Everything |
 | `--headroom-release <url>` | 🛡️ Your own `.whl` release | ✅ | Internal/audited builds |
 
-### 🛡️ Custom release (from your own fork)
+### 🛡️ Custom release (your own fork or audited build)
 
-If you built headroom from source (see [headroom_sanitizer](https://github.com/estrazulas/headroom_sanitizer)), pass your own `.whl` release URL:
+If you compiled headroom from source — whether a security-hardened fork, an internal build, or a patched version — pass the `.whl` URL with `--headroom-release`. For integrity, you can also provide the expected SHA256 so the installer verifies the file before pipx installs it.
 
 ```bash
-bash install.sh --headroom-release "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl"
+# Generic — any custom .whl
+bash install.sh \
+  --headroom-release "https://github.com/<you>/<repo>/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --headroom-sha256 "abc123..."
 ```
 
-This installs your compiled release instead of the official PyPI package. Compatible with `--full` and `--dry-run`.
+```bash
+# Example — security‑hardened sanitizer build
+bash install.sh \
+  --headroom-release "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --headroom-sha256 "202ae31f937e8993339441b363a2e47ebbf43502e22a447b2c643d390856f4dc"
+```
+
+| Flag | Purpose |
+|------|---------|
+| `--headroom-release <url>` | Use your own `.whl` instead of the official PyPI package |
+| `--headroom-sha256 <hash>` | Verify file integrity before installing (recommended) |
+
+> ⚠️ Without `--headroom-sha256` the installer skips integrity verification.  
+> Both flags are compatible with `--full` and `--dry-run`.
 
 ### ⚡ Default — Light headroom + DeepClaude
 
