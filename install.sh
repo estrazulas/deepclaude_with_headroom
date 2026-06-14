@@ -10,7 +10,7 @@ set -euo pipefail
 DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
-HEADROOM_VERSION="0.25.0"  # versão pinada que sabemos que funciona
+HEADROOM_VERSION="0.25.1"  # versão pinada que sabemos que funciona
 HEADROOM_SHA256=""  # hash esperado do .whl (opcional, recomendado com --headroom-release)
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -130,8 +130,7 @@ if [ -n "$HEADROOM_RELEASE" ]; then
 
   # --- SHA256 verification (A) ---
   if [ -n "$HEADROOM_SHA256" ]; then
-    TMP_DIR="$(mktemp -d -p /tmp headroom_custom_XXXXXX)"
-    TMP_WHL="$TMP_DIR/$(basename "$HEADROOM_RELEASE")"
+    TMP_WHL="/tmp/$(basename "$HEADROOM_RELEASE")"
     echo "  🔐 Verificando SHA256..."
     if $DRY_RUN; then
       echo "[dry-run] Baixaria $HEADROOM_RELEASE → validaria SHA256=$HEADROOM_SHA256"
