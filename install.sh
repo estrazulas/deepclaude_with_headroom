@@ -20,7 +20,7 @@ DC_SRC="$SRC/deepclaude"
 
 COMMANDS_DIR="$HOME/.claude/commands"
 BIN_DIR="$COMMANDS_DIR/bin"
-SETTINGS="$HOME/.claude/settings.local.json"
+SETTINGS="$HOME/.claude/settings.json"
 SYSTEMD_USER_DIR="$HOME/.config/systemd/user"
 
 MODE="light"
@@ -79,26 +79,27 @@ for f in bin/mem bin/headroom_usage; do
   fi
 done
 
-# Permissions
+# Permissions — Bash tool + ! (inline shell execution em comandos markdown)
 if ! $DRY_RUN; then
   [ ! -f "$SETTINGS" ] && echo '{}' > "$SETTINGS"
   for script_path in "$BIN_DIR/mem" "$BIN_DIR/headroom_usage"; do
-    perm="Bash($script_path *)"
-    if ! grep -qF "$perm" "$SETTINGS" 2>/dev/null; then
-      python3 -c "
+    for entry in "Bash($script_path *)" "Bash(!$script_path *)"; do
+      if ! grep -qF "$entry" "$SETTINGS" 2>/dev/null; then
+        python3 -c "
 import json
 with open('$SETTINGS') as f:
     cfg = json.load(f)
 cfg.setdefault('permissions', {}).setdefault('allow', [])
-entry = 'Bash($script_path *)'
-if entry not in cfg['permissions']['allow']:
-    cfg['permissions']['allow'].append(entry)
+e = '$entry'
+if e not in cfg['permissions']['allow']:
+    cfg['permissions']['allow'].append(e)
 with open('$SETTINGS', 'w') as f:
     json.dump(cfg, f, indent=2)
     f.write('\n')
-print('✓ Permissão:', entry)
+print('✓ Permissão:', e)
 "
-    fi
+      fi
+    done
   done
 fi
 
