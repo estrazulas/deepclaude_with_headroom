@@ -222,7 +222,7 @@ curl -s http://localhost:8787/health | python3 -m json.tool
 systemctl --user start headroom.service
 ```
 
-### Virtual machine — Nested VT-x/AMD-V
+### Can't install Headroom in a virtual machine
 
 If running inside a virtual machine (VM), the hypervisor must expose hardware virtualization features to the guest. Without this, components that depend on acceleration may fail.
 
