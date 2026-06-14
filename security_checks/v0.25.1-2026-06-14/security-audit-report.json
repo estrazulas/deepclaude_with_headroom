@@ -1,0 +1,276 @@
+{
+  "audit_metadata": {
+    "repository": "estrazulas/headroom_sanitizer (fork de chopratejas/headroom)",
+    "related_repo": "estrazulas/deepclaude_with_headroom",
+    "audit_date": "2026-06-14",
+    "headroom_version": "0.25.1",
+    "auditor": "Claude Code — Engenharia de Segurança Sênior",
+    "methodology": "Análise estática de código-fonte, grep de padrões de secrets, revisão de git history, análise de CI/CD, auditoria de instaladores",
+    "scope": [
+      "Código-fonte Python e Rust",
+      "Arquivos de configuração (.env, .yaml, .json, .toml)",
+      "Scripts de instalação e deploy",
+      "GitHub Actions workflows",
+      "Histórico do git (análise de commits com secrets)",
+      "Documentação e exemplos",
+      "Instaladores do deepclaude_with_headroom"
+    ]
+  },
+  "remediation": {
+    "release": "v0.25.1",
+    "release_url": "https://github.com/estrazulas/headroom_sanitizer/releases/tag/v0.25.1",
+    "fixed_findings": [
+      "headroom/memory/easy.py:118 — neo4j_password default alterado de \"password\" para \"\"",
+      "headroom/memory/backends/direct_mem0.py:102 — neo4j_password default alterado de \"password\" para \"\"",
+      "headroom/memory/backends/mem0.py:60 — neo4j_password default alterado de \"password\" para \"\""
+    ],
+    "fix_commit": "ed92f8a",
+    "fix_date": "2026-06-14"
+  },
+  "summary": {
+    "total_findings": 16,
+    "critical": 0,
+    "high_original": 3,
+    "high_resolved": 3,
+    "high_pending": 0,
+    "medium": 6,
+    "low": 4,
+    "info": 3
+  },
+  "findings": [
+    {
+      "severity": "high",
+      "type": "password",
+      "status": "resolved",
+      "resolution": "v0.25.1 — neo4j_password default alterado para \"\" no commit ed92f8a",
+      "file": "headroom/memory/easy.py",
+      "line": 118,
+      "match": "neo4j_password: str = \"password\" → \"\"",
+      "description": "Senha padrão do Neo4j hardcoded como 'password' no código-fonte Python para o backend de memória.",
+      "risk": "Qualquer deploy que dependa deste padrão expõe o banco Neo4j a acesso não autorizado.",
+      "remediation": "Corrigido na v0.25.1. Default alterado para string vazia. HEADROOM_NEO4J_PASSWORD deve ser configurada explicitamente."
+    },
+    {
+      "severity": "high",
+      "status": "resolved",
+      "resolution": "v0.25.1 — neo4j_password default alterado para \"\" no commit ed92f8a",
+      "type": "password",
+      "file": "headroom/memory/backends/direct_mem0.py",
+      "line": 102,
+      "match": "neo4j_password: str = \"password\" → \"\"",
+      "description": "Senha padrão 'password' duplicada no backend direct_mem0 para Neo4j.",
+      "risk": "Mesmo risco do finding anterior — deploy inseguro do Neo4j com credencial trivial.",
+      "remediation": "Corrigido na v0.25.1. Default alterado para string vazia."
+    },
+    {
+      "severity": "high",
+      "type": "password",
+      "status": "resolved",
+      "resolution": "v0.25.1 — neo4j_password default alterado para \"\" no commit ed92f8a",
+      "file": "headroom/memory/backends/mem0.py",
+      "line": 60,
+      "match": "neo4j_password: str = \"password\" → \"\"",
+      "description": "Terceira ocorrência da senha padrão 'password' para Neo4j no backend mem0 principal.",
+      "risk": "Propaga o mesmo padrão inseguro por toda a stack de memória.",
+      "remediation": "Corrigido na v0.25.1. Default alterado para string vazia."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "status": "pending",
+      "file": "docker-compose.yml",
+      "line": 42,
+      "match": "NEO4J_AUTH=${NEO4J_AUTH:-neo4j/devpassword}",
+      "description": "Credencial padrão 'neo4j/devpassword' definida no docker-compose.yml para o container Neo4j.",
+      "risk": "Deploy acidental com docker-compose up sem configurar NEO4J_AUTH expõe o banco gráfico com credencial trivial.",
+      "remediation": "Remover o valor default: usar ${NEO4J_AUTH} sem fallback (força erro se não configurado)."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "status": "pending",
+      "file": "docker-compose.yml",
+      "line": 44,
+      "match": "NEO4J_apoc_export_file_enabled=true",
+      "description": "APOC file export/import habilitado no Neo4j.",
+      "risk": "Se um atacante obtiver acesso ao Bolt (7687) ou HTTP (7474), pode usar APOC para ler/escrever arquivos no servidor.",
+      "remediation": "Desabilitar export/import de arquivos APOC em produção: NEO4J_apoc_export_file_enabled=false."
+    },
+    {
+      "severity": "medium",
+      "type": "endpoint",
+      "status": "pending",
+      "file": "docker-compose.yml",
+      "lines": "25-31",
+      "match": "Portas Qdrant 6333 e 6334 expostas sem autenticação",
+      "description": "Qdrant exposto sem autenticação ou chave de API.",
+      "risk": "Qualquer processo na rede local pode ler/escrever no banco vetorial Qdrant sem autenticação.",
+      "remediation": "Adicionar QDRANT__SERVICE__API_KEY no docker-compose.yml."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "status": "pending",
+      "file": "headroom/proxy/models.py",
+      "lines": "265-267",
+      "match": "memory_neo4j_password: str = \"\"",
+      "description": "Configurações padrão do proxy para Neo4j com senha vazia.",
+      "risk": "Proxy pode operar com banco Neo4j sem autenticação se o operador não configurar a senha.",
+      "remediation": "Exigir senha não-vazia quando memory_backend for qdrant-neo4j."
+    },
+    {
+      "severity": "medium",
+      "type": "config",
+      "status": "pending",
+      "file": ".pre-commit-config.yaml",
+      "line": 1,
+      "match": "(sem hooks de security scanning)",
+      "description": "Nenhum hook de segurança configurado no pre-commit (sem gitleaks, truffleHog, detect-secrets ou bandit).",
+      "risk": "Desenvolvedores podem commitar secrets acidentalmente sem detecção automática.",
+      "remediation": "Adicionar gitleaks ou detect-secrets como hook de pre-commit."
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "status": "pending",
+      "file": "headroom/providers/google.py",
+      "line": 14,
+      "match": "genai.configure(api_key=\"your-api-key\")",
+      "description": "Placeholder de API key no docstring do provedor Google.",
+      "risk": "Baixo porque é placeholder explícito. Risco é incentivar hardcodear chaves.",
+      "remediation": "Substituir por variável de ambiente no exemplo."
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "status": "pending",
+      "file": "headroom/cli/proxy.py",
+      "line": 924,
+      "match": "ANTHROPIC_API_KEY=\"sk-ant-dummy\"",
+      "description": "Instrução para usar chave dummy com formato de chave real.",
+      "risk": "Polui scanners automatizados com formato de chave que parece válida.",
+      "remediation": "Usar valor mais óbvio como 'set-your-real-key-here'."
+    },
+    {
+      "severity": "low",
+      "type": "endpoint",
+      "status": "pending",
+      "file": "docker-compose.yml",
+      "line": 5,
+      "match": "HEADROOM_HOST=0.0.0.0",
+      "description": "Proxy exposto em 0.0.0.0:8787 sem autenticação.",
+      "risk": "Qualquer processo na rede pode enviar requisições ao proxy.",
+      "remediation": "Documentar que 0.0.0.0 é para Docker e recomendar localhost em deploys diretos."
+    },
+    {
+      "severity": "low",
+      "type": "config",
+      "status": "pending",
+      "file": "deepclaude_with_headroom/install.sh",
+      "line": 303,
+      "match": "export DEEPSEEK_API_KEY no shell rc",
+      "description": "Instalador armazena DEEPSEEK_API_KEY em texto plano no .zshrc/.bashrc.",
+      "risk": "Chave em texto plano no disco. Outros processos no sistema podem ler.",
+      "remediation": "Considerar keyring do SO (secret-tool/kwallet) ou arquivo .env com permissões 600."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "status": "acknowledged",
+      "file": ".gitignore",
+      "match": "Cobertura exemplar de secrets",
+      "description": ".gitignore cobre .env, .env.*, *.pem, *.key, secrets.json, credentials.json.",
+      "risk": "Nenhum — boa prática estabelecida.",
+      "remediation": "Manutenção contínua."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "status": "acknowledged",
+      "file": ".gitguardian.yaml",
+      "match": "GitGuardian configurado com allowlist",
+      "description": "GitGuardian configurado com allowlist criteriosa para tokens de teste.",
+      "risk": "Nenhum — boa prática estabelecida.",
+      "remediation": "Manter atualizado."
+    },
+    {
+      "severity": "info",
+      "type": "other",
+      "status": "acknowledged",
+      "file": "SECURITY.md",
+      "match": "Política de segurança",
+      "description": "Política de segurança com email security@headroom.dev e SLA definido.",
+      "risk": "Nenhum — boa prática.",
+      "remediation": "Garantir monitoramento ativo do email."
+    },
+    {
+      "severity": "low",
+      "type": "other",
+      "status": "pending",
+      "file": "SECURITY.md",
+      "line": 60,
+      "match": "Discrepância documentação vs código",
+      "description": "Documentação afirma 'Never store or log API keys' mas havia senhas hardcoded.",
+      "risk": "Baixo — corrigido na v0.25.1.",
+      "remediation": "Atualizar SECURITY.md para refletir práticas atuais."
+    }
+  ],
+  "fix_verification": {
+    "commit": "ed92f8a",
+    "commit_url": "https://github.com/estrazulas/headroom_sanitizer/commit/ed92f8a",
+    "release": "v0.25.1",
+    "release_url": "https://github.com/estrazulas/headroom_sanitizer/releases/tag/v0.25.1",
+    "wheel_url": "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.1/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl",
+    "sha256": "63601398d73a3bcfb56e50b6b0d251ce9d3cc2470305005c576a02efa9772e18",
+    "files_changed": [
+      "headroom/memory/easy.py",
+      "headroom/memory/backends/direct_mem0.py",
+      "headroom/memory/backends/mem0.py"
+    ]
+  },
+  "git_history": {
+    "headroom_sanitizer": {
+      "total_commits": "~971 (upstream + 3 do fork)",
+      "fork_specific_commits": 3,
+      "commits_by_fork_author": [
+        {
+          "hash": "8f3e15e",
+          "author": "estrazulas",
+          "message": "docs: add build & release guide for internal use",
+          "risk": "Nenhum"
+        },
+        {
+          "hash": "241a2cf",
+          "author": "estrazulas",
+          "message": "docs: add sanitized fork build & release quickstart to README",
+          "risk": "Nenhum"
+        },
+        {
+          "hash": "ed92f8a",
+          "author": "estrazulas",
+          "message": "fix: remove hardcoded Neo4j default password in memory backends",
+          "risk": "Fix de segurança — senhas padrão removidas",
+          "files_changed": [
+            "headroom/memory/easy.py",
+            "headroom/memory/backends/direct_mem0.py",
+            "headroom/memory/backends/mem0.py"
+          ]
+        }
+      ]
+    }
+  },
+  "recommendations": [
+    "[RESOLVIDO v0.25.1] Remover senha padrão 'password' do Neo4j nos 3 arquivos",
+    "ALTA: Remover fallback de senha no docker-compose.yml — exigir NEO4J_AUTH explícita",
+    "MÉDIA: Desabilitar APOC file export/import no docker-compose.yml para produção",
+    "MÉDIA: Adicionar autenticação ao Qdrant no docker-compose.yml",
+    "MÉDIA: Configurar gitleaks ou detect-secrets como hook de pre-commit",
+    "MÉDIA: Exigir senha Neo4j não-vazia no startup do proxy",
+    "BAIXA: Substituir placeholder 'your-api-key' no google.py por exemplo com env var",
+    "BAIXA: Trocar 'sk-ant-dummy' por placeholder mais óbvio no proxy.py",
+    "BAIXA: Considerar keyring do SO para armazenar DEEPSEEK_API_KEY no instalador",
+    "INFO: Adicionar *.kdbx, *.asc, *.gpg ao .gitignore",
+    "INFO: Atualizar SECURITY.md para refletir práticas atuais"
+  ],
+  "confidence": 95
+}
