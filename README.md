@@ -95,7 +95,7 @@ bash install.sh \
 # Example — security‑hardened sanitizer build
 bash install.sh \
   --headroom-release "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "202ae31f937e8993339441b363a2e47ebbf43502e22a447b2c643d390856f4dc"
+  --headroom-sha256 "a8b4c343b044f097e434d8d0d99b1e356b5b0367b33e9c4137711655208cebc2"
 ```
 
 | Flag | Purpose |

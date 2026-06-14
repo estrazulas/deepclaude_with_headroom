@@ -130,10 +130,12 @@ if [ -n "$HEADROOM_RELEASE" ]; then
 
   # --- SHA256 verification (A) ---
   if [ -n "$HEADROOM_SHA256" ]; then
-    TMP_WHL="/tmp/headroom_$(basename "$HEADROOM_RELEASE")"
+    TMP_DIR="$(mktemp -d -p /tmp headroom_custom_XXXXXX)"
+    TMP_WHL="$TMP_DIR/$(basename "$HEADROOM_RELEASE")"
     echo "  🔐 Verificando SHA256..."
     if $DRY_RUN; then
       echo "[dry-run] Baixaria $HEADROOM_RELEASE → validaria SHA256=$HEADROOM_SHA256"
+      INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
     else
       curl -fsSL -o "$TMP_WHL" "$HEADROOM_RELEASE"
       LOCAL_HASH=$(sha256sum "$TMP_WHL" | awk '{print $1}')
@@ -157,7 +159,17 @@ else
 fi
 
 if command -v headroom &>/dev/null; then
-  echo "✓ headroom $(headroom --version) já instalado"
+  if [ -n "$HEADROOM_RELEASE" ]; then
+    echo "  Headroom já instalado. Atualizando para release customizada..."
+    if $DRY_RUN; then
+      echo "[dry-run] pipx install --force '$INSTALL_TARGET'"
+    else
+      pipx install --force "$INSTALL_TARGET"
+      echo "✓ headroom $(headroom --version) atualizado"
+    fi
+  else
+    echo "✓ headroom $(headroom --version) já instalado"
+  fi
 else
   echo "  Headroom CLI é necessário para o proxy de compressão."
   echo ""
@@ -223,8 +235,8 @@ if ! $DRY_RUN && command -v headroom &>/dev/null; then
   else
     echo "✓ Post-check: headroom $INSTALLED_VER instalado corretamente"
   fi
-  # Cleanup temp file
-  [ -n "${TMP_WHL:-}" ] && [ -f "$TMP_WHL" ] && rm -f "$TMP_WHL"
+  # Cleanup temp directory
+  [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
 fi
 
 # ═══════════════════════════════════════════
