@@ -222,16 +222,16 @@ curl -s http://localhost:8787/health | python3 -m json.tool
 systemctl --user start headroom.service
 ```
 
-### Ambiente virtual (VM) — Nested VT-x/AMD-V
+### Virtual machine — Nested VT-x/AMD-V
 
-Se estiver executando dentro de uma máquina virtual (VM), o hypervisor precisa expor os recursos de virtualização de hardware ao guest. Sem isso, componentes que dependem de aceleração podem falhar.
+If running inside a virtual machine (VM), the hypervisor must expose hardware virtualization features to the guest. Without this, components that depend on acceleration may fail.
 
 ```bash
 # Validate — must return 2 or more
 egrep -c '(vmx|svm)' /proc/cpuinfo
 ```
 
-Se o comando retornar `0`, habilite **Nested VT-x/AMD-V** nas configurações da VM:
+If the command returns `0`, enable **Nested VT-x/AMD-V** in your VM settings:
 
 | Hypervisor | Setting |
 |------------|---------|
@@ -241,7 +241,7 @@ Se o comando retornar `0`, habilite **Nested VT-x/AMD-V** nas configurações da
 | **Proxmox** | *VM → Hardware → Processors →* Type: `host` |
 | **Hyper-V** | `Set-VMProcessor -VMName <name> -ExposeVirtualizationExtensions $true` |
 
-Depois de habilitar, reinicie a VM e valide novamente com o comando acima (resultado ≥ 2).
+After enabling, reboot the VM and validate again with the command above (result ≥ 2).
 
 ### Slash commands not showing in Claude Code
 
