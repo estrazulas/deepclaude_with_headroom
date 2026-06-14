@@ -9,6 +9,7 @@ set -euo pipefail
 DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
+HEADROOM_VERSION="0.25.0"  # versão pinada que sabemos que funciona
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=true ;;
@@ -122,7 +123,7 @@ if [ -n "$HEADROOM_RELEASE" ]; then
   INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
   echo "  🌐 Release próprio: $HEADROOM_RELEASE"
 else
-  INSTALL_TARGET="headroom-ai[$EXTRAS]"
+  INSTALL_TARGET="headroom-ai[$EXTRAS]==$HEADROOM_VERSION"
 fi
 
 if command -v headroom &>/dev/null; then
