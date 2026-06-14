@@ -49,6 +49,9 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 ```bash
 git clone https://github.com/estrazulas/deepclaude_with_headroom.git
 cd deepclaude_with_headroom
+
+# Installs the official headroom‑ai from PyPI (unless --headroom-release is given)
+bash install.sh
 ```
 
 ### Flag combinations
