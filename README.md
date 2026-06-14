@@ -13,7 +13,8 @@ Run **Claude Code** using the **DeepSeek API** (drastically cheaper) with the **
 
 > 💰 DeepSeek V4 Pro: ~$0.44/M input vs Anthropic: ~$3.00/M input  
 > 💰 DeepSeek V4 Pro: ~$0.87/M output vs Anthropic: ~$15.00/M output  
-> 📉 Headroom saves an additional 5–16% via context compression
+> 📉 Headroom saves an additional 5–16% via context compression  
+> 🎥 [How Headroom saves tokens](https://youtu.be/UOWSHg18cL0) — by the creator [@chopratejas](https://github.com/chopratejas)
 
 ---
 
@@ -220,6 +221,27 @@ systemctl --user status headroom.service
 curl -s http://localhost:8787/health | python3 -m json.tool
 systemctl --user start headroom.service
 ```
+
+### Ambiente virtual (VM) — Nested VT-x/AMD-V
+
+Se estiver executando dentro de uma máquina virtual (VM), o hypervisor precisa expor os recursos de virtualização de hardware ao guest. Sem isso, componentes que dependem de aceleração podem falhar.
+
+```bash
+# Validate — must return 2 or more
+egrep -c '(vmx|svm)' /proc/cpuinfo
+```
+
+Se o comando retornar `0`, habilite **Nested VT-x/AMD-V** nas configurações da VM:
+
+| Hypervisor | Setting |
+|------------|---------|
+| **VirtualBox** | *System → Processor →* ✅ *Enable Nested VT-x/AMD-V* |
+| **VMware** | *Processors →* ✅ *Virtualize Intel VT-x/EPT or AMD-V/RVI* |
+| **KVM/QEMU** | `virsh edit <vm>` → `<cpu mode='host-passthrough'/>` |
+| **Proxmox** | *VM → Hardware → Processors →* Type: `host` |
+| **Hyper-V** | `Set-VMProcessor -VMName <name> -ExposeVirtualizationExtensions $true` |
+
+Depois de habilitar, reinicie a VM e valide novamente com o comando acima (resultado ≥ 2).
 
 ### Slash commands not showing in Claude Code
 
