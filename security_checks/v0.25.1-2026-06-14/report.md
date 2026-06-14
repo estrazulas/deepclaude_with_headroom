@@ -1,18 +1,18 @@
 # 🔒 Security Audit Report — Headroom Sanitizer v0.25.1
 
-**Data:** 2026-06-14  
-**Repositório:** [estrazulas/headroom_sanitizer](https://github.com/estrazulas/headroom_sanitizer)  
-**Relacionado:** [estrazulas/deepclaude_with_headroom](https://github.com/estrazulas/deepclaude_with_headroom)  
-**Versão:** v0.25.1 (fork do [chopratejas/headroom](https://github.com/chopratejas/headroom))  
-**Auditor:** Claude Code — Engenharia de Segurança Sênior  
-**Confiança:** 95%
+**Date:** 2026-06-14  
+**Repository:** [estrazulas/headroom_sanitizer](https://github.com/estrazulas/headroom_sanitizer)  
+**Related:** [estrazulas/deepclaude_with_headroom](https://github.com/estrazulas/deepclaude_with_headroom)  
+**Version:** v0.25.1 (fork of [chopratejas/headroom](https://github.com/chopratejas/headroom))  
+**Auditor:** Claude Code — Senior Security Engineering  
+**Confidence:** 95%
 
 ---
 
-## 📊 Resumo Executivo
+## 📊 Executive Summary
 
-| Severidade | Original | Pendente | Resolvido |
-|:----------:|:--------:|:--------:|:---------:|
+| Severity | Original | Pending | Resolved |
+|:--------:|:--------:|:-------:|:--------:|
 | 🔴 Critical | 0 | 0 | — |
 | 🟠 High | 3 | **0** | **3 ✅** |
 | 🟡 Medium | 6 | 6 | — |
@@ -20,22 +20,22 @@
 | ℹ️ Info | 3 | 3 | — |
 | **Total** | **16** | **13** | **3** |
 
-> ✅ **3 falhas High corrigidas na v0.25.1** — commit `ed92f8a`
+> ✅ **3 High findings fixed in v0.25.1** — commit `ed92f8a`
 
 ---
 
-## 🛠️ Remediação Aplicada
+## 🛠️ Remediation Applied
 
-| Release | Data | Comando |
-|---------|:----:|---------|
+| Release | Date | Commit |
+|---------|:----:|--------|
 | **v0.25.1** | 2026-06-14 | `ed92f8a` |
 
-**Arquivos corrigidos:**
+**Fixed files:**
 - `headroom/memory/easy.py:118`
 - `headroom/memory/backends/direct_mem0.py:102`
 - `headroom/memory/backends/mem0.py:60`
 
-**Mudança:** `neo4j_password: str = "password"` → `neo4j_password: str = ""`
+**Change:** `neo4j_password: str = "password"` → `neo4j_password: str = ""`
 
 **Wheel:** `headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl`  
 **SHA256:** `63601398d73a3bcfb56e50b6b0d251ce9d3cc2470305005c576a02efa9772e18`  
@@ -43,279 +43,280 @@
 
 ---
 
-## 🏆 Positivos (Boas Práticas Identificadas)
+## 🏆 Positives (Good Practices Found)
 
-- ✅ **Nenhum secret real** encontrado no código ou histórico do git
-- ✅ **GitGuardian** configurado com allowlist criteriosa e documentada
-- ✅ **.gitignore** exemplar — cobre `.env`, `*.pem`, `*.key`, `secrets.json`, `credentials.json`
-- ✅ **Fork adiciona apenas documentação** (BUILD.md, README, rebuild.sh) — sem modificar código-fonte upstream
-- ✅ **Todas as chaves de API** lidas de variáveis de ambiente
-- ✅ **Systemd service** (`headroom.service`) com hardening: `IPAddressDeny`, `NoNewPrivileges`, `ProtectSystem`
-- ✅ **Verificação SHA256** no instalador para `.whl` customizados — proteção supply chain
-- ✅ **SECURITY.md** com política de disclosure responsável (48h acknowledge, 7d para críticos)
-- ✅ **Chaves mascaradas** na saída do comando `deepclaude --status`
+- ✅ **No real secrets** found in code or git history
+- ✅ **GitGuardian** configured with a well-documented allowlist
+- ✅ **.gitignore** exemplary — covers `.env`, `*.pem`, `*.key`, `secrets.json`, `credentials.json`
+- ✅ **Fork adds only documentation** (BUILD.md, README, rebuild.sh) — no upstream code changes
+- ✅ **All API keys** read from environment variables
+- ✅ **Systemd service** (`headroom.service`) with hardening: `IPAddressDeny`, `NoNewPrivileges`, `ProtectSystem`
+- ✅ **SHA256 verification** in the installer for custom `.whl` files — supply chain protection
+- ✅ **SECURITY.md** with responsible disclosure policy (48h ack, 7d for critical)
+- ✅ **Masked keys** in `deepclaude --status` output
 
 ---
 
-## ~~🔴 Altos (3) — RESOLVIDOS ✅~~
+## ~~🔴 High (3) — RESOLVED ✅~~
 
-### H-1: ~~Senha padrão Neo4j no módulo easy.py~~ ✅
+### H-1: ~~Default Neo4j password in easy.py~~ ✅
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `headroom/memory/easy.py` |
-| **Linha** | 118 |
-| **Status** | ✅ **Resolvido na v0.25.1** (`ed92f8a`) |
-| **Código original** | `neo4j_password: str = "password"` |
-| **Código atual** | `neo4j_password: str = ""` |
-| **Tipo** | Senha hardcoded |
+| **File** | `headroom/memory/easy.py` |
+| **Line** | 118 |
+| **Status** | ✅ **Resolved in v0.25.1** (`ed92f8a`) |
+| **Original code** | `neo4j_password: str = "password"` |
+| **Current code** | `neo4j_password: str = ""` |
+| **Type** | Hardcoded password |
 
-**Ação tomada:** Default alterado para string vazia. `HEADROOM_NEO4J_PASSWORD` deve ser configurada explicitamente pelo operador.
+**Action taken:** Default changed to empty string. `HEADROOM_NEO4J_PASSWORD` must be explicitly set by the operator.
 
 ---
 
-### H-2: ~~Senha padrão Neo4j no backend direct_mem0.py~~ ✅
+### H-2: ~~Default Neo4j password in direct_mem0.py~~ ✅
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `headroom/memory/backends/direct_mem0.py` |
-| **Linha** | 102 |
-| **Status** | ✅ **Resolvido na v0.25.1** (`ed92f8a`) |
-| **Código original** | `neo4j_password: str = "password"` |
-| **Código atual** | `neo4j_password: str = ""` |
-| **Tipo** | Senha hardcoded |
+| **File** | `headroom/memory/backends/direct_mem0.py` |
+| **Line** | 102 |
+| **Status** | ✅ **Resolved in v0.25.1** (`ed92f8a`) |
+| **Original code** | `neo4j_password: str = "password"` |
+| **Current code** | `neo4j_password: str = ""` |
+| **Type** | Hardcoded password |
 
-**Ação tomada:** Default alterado para string vazia.
+**Action taken:** Default changed to empty string.
 
 ---
 
-### H-3: ~~Senha padrão Neo4j no backend mem0.py~~ ✅
+### H-3: ~~Default Neo4j password in mem0.py~~ ✅
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `headroom/memory/backends/mem0.py` |
-| **Linha** | 60 |
-| **Status** | ✅ **Resolvido na v0.25.1** (`ed92f8a`) |
-| **Código original** | `neo4j_password: str = "password"` |
-| **Código atual** | `neo4j_password: str = ""` |
-| **Tipo** | Senha hardcoded |
+| **File** | `headroom/memory/backends/mem0.py` |
+| **Line** | 60 |
+| **Status** | ✅ **Resolved in v0.25.1** (`ed92f8a`) |
+| **Original code** | `neo4j_password: str = "password"` |
+| **Current code** | `neo4j_password: str = ""` |
+| **Type** | Hardcoded password |
 
-**Ação tomada:** Default alterado para string vazia.
+**Action taken:** Default changed to empty string.
 
 ---
 
-## 🟡 Médios (6) — Pendentes
+## 🟡 Medium (6) — Pending
 
-### M-1: Credencial default Neo4j no docker-compose.yml
+### M-1: Default Neo4j credential in docker-compose.yml
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `docker-compose.yml` |
-| **Linha** | 42 |
-| **Código** | `NEO4J_AUTH=${NEO4J_AUTH:-neo4j/devpassword}` |
-| **Tipo** | Configuração insegura |
+| **File** | `docker-compose.yml` |
+| **Line** | 42 |
+| **Code** | `NEO4J_AUTH=${NEO4J_AUTH:-neo4j/devpassword}` |
+| **Type** | Insecure configuration |
 
-**Risco:** `docker-compose up` sem configurar `NEO4J_AUTH` expõe o banco gráfico com credencial trivial.
+**Risk:** Running `docker-compose up` without setting `NEO4J_AUTH` exposes the graph database with a trivial default credential.
 
-**Ação:** Remover fallback `:-neo4j/devpassword` — forçar erro se variável não definida.
+**Action:** Remove the `:-neo4j/devpassword` fallback — force an error if the variable is not set.
 
 ---
 
-### M-2: APOC file export/import habilitado
+### M-2: APOC file export/import enabled
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `docker-compose.yml` |
-| **Linha** | 44-46 |
-| **Código** | `NEO4J_apoc_export_file_enabled=true` |
+| **File** | `docker-compose.yml` |
+| **Line** | 44-46 |
+| **Code** | `NEO4J_apoc_export_file_enabled=true` |
 
-**Risco:** Plugin APOC com export/import de arquivos permite leitura/escrita arbitrária no filesystem do container. Combinado com senha default (M-1), é vetor de LFI.
+**Risk:** The APOC plugin with file export/import allows arbitrary file read/write on the container filesystem. Combined with the default password (M-1), this is an LFI vector.
 
-**Ação:** Desabilitar em produção: `NEO4J_apoc_export_file_enabled=false`.
+**Action:** Disable in production: `NEO4J_apoc_export_file_enabled=false`.
 
 ---
 
-### M-3: Qdrant sem autenticação
+### M-3: Qdrant without authentication
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `docker-compose.yml` |
-| **Linha** | 25-31 |
-| **Portas** | 6333 (REST), 6334 (gRPC) |
+| **File** | `docker-compose.yml` |
+| **Line** | 25-31 |
+| **Ports** | 6333 (REST), 6334 (gRPC) |
 
-**Risco:** Banco vetorial exposto sem autenticação na rede local.
+**Risk:** Vector database exposed without authentication on the local network.
 
-**Ação:** Adicionar `QDRANT__SERVICE__API_KEY` no docker-compose e configurar `HEADROOM_QDRANT_API_KEY`.
+**Action:** Add `QDRANT__SERVICE__API_KEY` in docker-compose and configure `HEADROOM_QDRANT_API_KEY`.
 
 ---
 
-### M-4: Config padrão Neo4j vazia no proxy
+### M-4: Empty Neo4j password default in proxy config
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `headroom/proxy/models.py` |
-| **Linhas** | 265-267 |
-| **Código** | `memory_neo4j_password: str = ""` |
+| **File** | `headroom/proxy/models.py` |
+| **Lines** | 265-267 |
+| **Code** | `memory_neo4j_password: str = ""` |
 
-**Risco:** Proxy permite startup com senha vazia para o Neo4j. O warning no log pode ser ignorado.
+**Risk:** Proxy allows startup with an empty Neo4j password. The warning in logs can be ignored.
 
-**Ação:** Bloquear startup se `memory_backend == "qdrant-neo4j"` e senha estiver vazia.
+**Action:** Block startup if `memory_backend == "qdrant-neo4j"` and the password is empty.
 
 ---
 
-### M-5: Sem hooks de segurança no pre-commit
+### M-5: No security hooks in pre-commit
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `.pre-commit-config.yaml` |
-| **Hooks atuais** | ruff, mypy, commitlint |
+| **File** | `.pre-commit-config.yaml` |
+| **Current hooks** | ruff, mypy, commitlint |
 
-**Risco:** Nenhuma detecção automática de secrets no commit. Desenvolvedores podem commitar tokens acidentalmente.
+**Risk:** No automated secret detection on commit. Developers may accidentally commit tokens.
 
-**Ação:** Adicionar `gitleaks`, `detect-secrets` ou `truffleHog` como hook de pre-commit.
+**Action:** Add `gitleaks`, `detect-secrets`, or `truffleHog` as a pre-commit hook.
 
 ---
 
-### M-6: DEEPSEEK_API_KEY em texto plano no shell rc
+### M-6: DEEPSEEK_API_KEY stored in plaintext in shell rc
 
-| Campo | Valor |
+| Field | Value |
 |-------|-------|
-| **Arquivo** | `deepclaude_with_headroom/install.sh` |
-| **Linhas** | 303-314 |
-| **Código** | `echo "export DEEPSEEK_API_KEY=...\" >> \"$SHELL_RC\"` |
+| **File** | `deepclaude_with_headroom/install.sh` |
+| **Lines** | 303-314 |
+| **Code** | `echo "export DEEPSEEK_API_KEY=...\" >> \"$SHELL_RC\"` |
 
-**Risco:** Chave de API armazenada em texto plano em `.zshrc`/`.bashrc`. Outros processos no sistema podem ler.
+**Risk:** API key stored in plaintext in `.zshrc`/`.bashrc`. Other processes on the system can read it.
 
-**Ação:** Considerar armazenar em keyring do SO (`secret-tool`, `kwallet`) ou ao menos em `.env` com permissões `600`.
-
----
-
-## 🟢 Baixos (4) — Pendentes
-
-### L-1: Placeholder de API key no google.py
-
-| Arquivo | Linha | Problema |
-|---------|:-----:|----------|
-| `headroom/providers/google.py` | 14 | `genai.configure(api_key="your-api-key")` — placeholder que estabelece padrão perigoso |
-
-**Ação:** Substituir por exemplo com `os.environ['GOOGLE_API_KEY']`.
+**Action:** Consider storing in the OS keyring (`secret-tool`, `kwallet`) or at least in an `.env` file with `600` permissions.
 
 ---
 
-### L-2: Chave dummy no proxy.py
+## 🟢 Low (4) — Pending
 
-| Arquivo | Linha | Problema |
-|---------|:-----:|----------|
-| `headroom/cli/proxy.py` | 924 | `ANTHROPIC_API_KEY="sk-ant-dummy"` — polui scanners automatizados com formato de chave real |
+### L-1: API key placeholder in google.py
 
-**Ação:** Usar valor mais óbvio como `"set-your-real-key-here"`.
+| File | Line | Issue |
+|------|:----:|-------|
+| `headroom/providers/google.py` | 14 | `genai.configure(api_key="your-api-key")` — placeholder that sets a dangerous pattern |
 
----
-
-### L-3: Proxy exposto sem autenticação
-
-| Arquivo | Linha | Problema |
-|---------|:-----:|----------|
-| `docker-compose.yml` | 5 | `HEADROOM_HOST=0.0.0.0` na porta 8787 sem qualquer autenticação |
-
-**Ação:** Documentar que 0.0.0.0 é específico para Docker e recomendar `127.0.0.1` em deploys diretos.
+**Action:** Replace with an environment variable example: `os.environ['GOOGLE_API_KEY']`.
 
 ---
 
-### L-4: DEEPSEEK_API_KEY no instalador
+### L-2: Dummy key in proxy.py
 
-| Arquivo | Linha | Problema |
-|---------|:-----:|----------|
-| `deepclaude_with_headroom/install.sh` | 303-314 | Chave armazenada em texto plano no shell rc |
+| File | Line | Issue |
+|------|:----:|-------|
+| `headroom/cli/proxy.py` | 924 | `ANTHROPIC_API_KEY="sk-ant-dummy"` — pollutes automated scanners with a real-looking key format |
 
-**Ação:** Considerar keyring do SO ou arquivo `.env` com permissões restritas.
-
----
-
-## ℹ️ Informativos (3)
-
-| # | Arquivo | Observação |
-|:-:|---------|------------|
-| I-1 | `.gitignore` | Cobertura exemplar de padrões de secrets |
-| I-2 | `.gitguardian.yaml` | Allowlist criteriosa para tokens de teste |
-| I-3 | `SECURITY.md` | Política de disclosure com SLA definido |
+**Action:** Use a more obvious placeholder like `"set-your-real-key-here"`.
 
 ---
 
-## 📜 Histórico do Git
+### L-3: Proxy exposed without authentication
+
+| File | Line | Issue |
+|------|:----:|-------|
+| `docker-compose.yml` | 5 | `HEADROOM_HOST=0.0.0.0` on port 8787 without any authentication |
+
+**Action:** Document that `0.0.0.0` is Docker-specific and recommend `127.0.0.1` for direct deployments.
+
+---
+
+### L-4: DEEPSEEK_API_KEY in installer
+
+| File | Line | Issue |
+|------|:----:|-------|
+| `deepclaude_with_headroom/install.sh` | 303-314 | Key stored in plaintext in shell rc |
+
+**Action:** Consider OS keyring or a restricted `.env` file.
+
+---
+
+## ℹ️ Informational (3)
+
+| # | File | Note |
+|:-:|------|------|
+| I-1 | `.gitignore` | Exemplary coverage of secret patterns |
+| I-2 | `.gitguardian.yaml` | Well-documented allowlist for test tokens |
+| I-3 | `SECURITY.md` | Disclosure policy with defined SLA |
+
+---
+
+## 📜 Git History
 
 ### headroom_sanitizer (fork)
 
-O fork contém **3 commits próprios** (estrazulas) sobre ~970 commits do upstream:
+The fork contains **3 custom commits** (estrazulas) on top of ~970 upstream commits:
 
-| Commit | Arquivos | Risco |
-|--------|----------|:-----:|
-| `8f3e15e` — docs: add build & release guide | `BUILD.md`, `README.md`, `rebuild.sh` | ✅ Nenhum |
-| `241a2cf` — docs: add sanitized fork quickstart | `README.md` | ✅ Nenhum |
-| `ed92f8a` — **fix: remove hardcoded Neo4j passwords** | `easy.py`, `direct_mem0.py`, `mem0.py` | ✅ **Fix de segurança** |
+| Commit | Files | Risk |
+|--------|-------|:----:|
+| `8f3e15e` — docs: add build & release guide | `BUILD.md`, `README.md`, `rebuild.sh` | ✅ None |
+| `241a2cf` — docs: add sanitized fork quickstart | `README.md` | ✅ None |
+| `ed92f8a` — **fix: remove hardcoded Neo4j passwords** | `easy.py`, `direct_mem0.py`, `mem0.py` | ✅ **Security fix** |
 
-> **Conclusão:** Nenhum secret encontrado no histórico. O terceiro commit é o fix de segurança que removeu as senhas padrão.
+> **Conclusion:** No secrets found in history. The third commit is the security fix that removed the default passwords.
 
 ### deepclaude_with_headroom
 
-Repositório com scripts de instalação. Todas as chaves são lidas de variáveis de ambiente ou solicitadas interativamente. **Nenhum secret no histórico.**
+Installer-only repository. All keys are read from environment variables or requested interactively. **No secrets in history.**
 
 ---
 
-## 🔧 Análise dos Instaladores (deepclaude_with_headroom)
+## 🔧 Installer Analysis (deepclaude_with_headroom)
 
-### Pontos Fortes
-- URLs de API hardcoded são endpoints públicos (api.deepseek.com, openrouter.ai) — aceitável
-- Suporte a `--headroom-sha256` para verificação de integridade de `.whl` customizados
-- `headroom.service` com hardening completo: `IPAddressDeny=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16`, `NoNewPrivileges`, `ProtectSystem`, `PrivateTmp`
-- Função `mask_key()` no `deepclaude.sh` — exibe apenas `****...` nos comandos de status
-- Script de desinstalação (`uninstall.sh`) remove completamente `DEEPSEEK_API_KEY` do shell rc
+### Strengths
+- Hardcoded API URLs point to public endpoints (api.deepseek.com, openrouter.ai) — acceptable
+- `--headroom-sha256` support for custom `.whl` integrity verification
+- `headroom.service` with full hardening: `IPAddressDeny=10.0.0.0/8 172.16.0.0/12 192.168.0.0/16`, `NoNewPrivileges`, `ProtectSystem`, `PrivateTmp`
+- `mask_key()` function in `deepclaude.sh` — displays only `****...` in status commands
+- Uninstaller (`uninstall.sh`) completely removes `DEEPSEEK_API_KEY` from shell rc
 
-### Pontos de Atenção
-- `DEEPSEEK_API_KEY` armazenada em texto plano no shell rc (M-6)
-- Script `install.sh` faz `sudo cp` de scripts para `/usr/local/bin` — requer confiança no repositório
-
----
-
-## 📋 Recomendações Prioritárias
-
-### Resolvido ✅
-1. **🔴** ~~Remover senha padrão `"password"` do Neo4j nos 3 arquivos~~ → **v0.25.1**
-
-### Pendentes — Curto Prazo
-2. **🟡** Remover fallback de senha no `docker-compose.yml` (`NEO4J_AUTH` sem default)
-3. **🟡** Desabilitar APOC file export/import no `docker-compose.yml`
-4. **🟡** Adicionar autenticação ao Qdrant no `docker-compose.yml`
-5. **🟡** Configurar `gitleaks` como hook de pre-commit
-6. **🟡** Exigir senha Neo4j não-vazia no startup do proxy
-
-### Pendentes — Médio Prazo
-7. **🟢** Substituir placeholders de API keys por exemplos com variáveis de ambiente
-8. **🟢** Considerar keyring do SO para armazenar `DEEPSEEK_API_KEY`
-9. **ℹ️** Adicionar `*.kdbx`, `*.asc`, `*.gpg` ao `.gitignore`
-10. **ℹ️** Atualizar `SECURITY.md` para refletir práticas atuais
+### Weaknesses
+- `DEEPSEEK_API_KEY` stored in plaintext in shell rc (M-6)
+- `install.sh` uses `sudo cp` for scripts to `/usr/local/bin` — requires trust in the repository
 
 ---
 
-## 🔍 Metodologia
+## 📋 Priority Recommendations
 
-- **Análise estática:** grep de padrões de secrets (API keys, tokens, JWT, senhas, endpoints internos)
-- **Revisão de git history:** `git log -p` para commits com secrets, diff de arquivos sensíveis
-- **Análise de CI/CD:** revisão de GitHub Actions workflows para exposição de secrets em logs/outputs
-- **Auditoria de dependências:** Não realizada (escopo limitado a análise de código-fonte)
-- **Testes dinâmicos:** Não realizados (escopo limitado a análise estática)
+### Resolved ✅
+1. **🔴** ~~Remove default `"password"` from Neo4j in all 3 files~~ → **v0.25.1**
+
+### Pending — Short Term
+2. **🟡** Remove password fallback in `docker-compose.yml` (`NEO4J_AUTH` with no default)
+3. **🟡** Disable APOC file export/import in `docker-compose.yml`
+4. **🟡** Add authentication to Qdrant in `docker-compose.yml`
+5. **🟡** Configure `gitleaks` as a pre-commit hook
+6. **🟡** Require non-empty Neo4j password on proxy startup
+
+### Pending — Medium Term
+7. **🟢** Replace API key placeholders with environment variable examples
+8. **🟢** Consider OS keyring for storing `DEEPSEEK_API_KEY`
+9. **ℹ️** Add `*.kdbx`, `*.asc`, `*.gpg` to `.gitignore`
+10. **ℹ️** Update `SECURITY.md` to reflect current practices
 
 ---
 
-## 📁 Estrutura dos Artefatos
+## 🔍 Methodology
+
+- **Static analysis:** grep for secret patterns (API keys, tokens, JWT, passwords, internal endpoints)
+- **Git history review:** `git log -p` for commits with secrets, diff of sensitive files
+- **CI/CD analysis:** review of GitHub Actions workflows for secret exposure in logs/outputs
+- **Dependency audit:** Not performed (scope limited to source code analysis)
+- **Dynamic testing:** Not performed (scope limited to static analysis)
+
+---
+
+## 📁 Artifact Structure
 
 ```
 security_checks/
 └── v0.25.1-2026-06-14/
-    ├── security-audit-report.json   ← Relatório completo em JSON (máquina)
-    └── report.md                    ← Este relatório em Markdown (leitura humana)
+    ├── security-audit-report.json   ← Full JSON report (machine-readable)
+    └── report.md                    ← This Markdown report (human-readable)
 ```
 
 ---
 
-*Relatório gerado em 2026-06-14. Falhas High corrigidas na v0.25.1 (commit ed92f8a). Recomenda-se reauditar a cada nova release do upstream.*
+*Report generated on 2026-06-14. High findings fixed in v0.25.1 (commit ed92f8a). Re-audit recommended for each new upstream release.*
+
