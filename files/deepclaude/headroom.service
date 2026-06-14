@@ -12,23 +12,29 @@ RestartSec=5
 Environment=HEADROOM_HOST=127.0.0.1
 Environment=HEADROOM_PORT=8787
 
-# --- Security hardening ---
+# --- Security hardening (user-service compatible) ---
+# Removed: PrivateDevices, ProtectKernelModules — require CAP_MKNOD/CAP_SYS_ADMIN
+#          which systemd --user lacks.
 # Filesystem
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/.headroom
+ReadWritePaths=%h/.headroom %h/.cache/headroom /tmp
 PrivateTmp=yes
-PrivateDevices=yes
 # Privileges
 NoNewPrivileges=yes
 # Network (only AF_INET + AF_INET6 + AF_UNIX)
 RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 RestrictNamespaces=yes
+# Egress — block private/LAN ranges (prevents lateral movement)
+# Internet (including api.deepseek.com) still reachable.
+IPAddressDeny=10.0.0.0/8
+IPAddressDeny=172.16.0.0/12
+IPAddressDeny=192.168.0.0/16
+IPAddressDeny=169.254.0.0/16
 # Resources
-MemoryMax=1G
-# Sandbox (allow exec so headroom can spawn itself for workers)
+MemoryMax=2G
+# Kernel
 ProtectKernelTunables=yes
-ProtectKernelModules=yes
 ProtectControlGroups=yes
 SystemCallArchitectures=native
 RestrictRealtime=yes

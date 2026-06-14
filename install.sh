@@ -238,14 +238,22 @@ if [ -f "$DC_SRC/headroom.service" ]; then
   mkdir -p "$SYSTEMD_USER_DIR"
   if $DRY_RUN; then
     echo "[dry-run] Copiaria: $SYSTEMD_USER_DIR/headroom.service"
-    echo "[dry-run] Rodaria: systemctl --user daemon-reload && enable --now"
+    echo "[dry-run] Rodaria: systemctl --user daemon-reload && enable headroom"
   else
+    # Stop any existing instance (may be in a restart loop from a broken config)
+    systemctl --user stop headroom.service 2>/dev/null || true
     cp "$DC_SRC/headroom.service" "$SYSTEMD_USER_DIR/headroom.service"
     systemctl --user daemon-reload
     systemctl --user enable headroom.service
     if command -v headroom &>/dev/null; then
-      systemctl --user start headroom.service
-      echo "✓ headroom.service instalado e iniciado"
+      systemctl --user restart headroom.service 2>/dev/null || systemctl --user start headroom.service
+      sleep 2
+      if systemctl --user is-active --quiet headroom.service 2>/dev/null; then
+        echo "✓ headroom.service instalado e em execução"
+      else
+        echo "⚠️  headroom.service não subiu. Verificar:"
+        echo "   journalctl --user -u headroom.service -n 20"
+      fi
     else
       echo "✓ headroom.service instalado (início manual após instalar headroom CLI)"
     fi
@@ -330,13 +338,20 @@ echo ""
 echo "━━━ 6. Health Check ━━━"
 
 if command -v headroom &>/dev/null; then
-  sleep 1
-  HEALTH=$(curl -sf http://localhost:8787/health 2>/dev/null || echo "")
+  # Wait up to 10s for the proxy to become ready
+  ATTEMPTS=0
+  HEALTH=""
+  while [ $ATTEMPTS -lt 10 ]; do
+    HEALTH=$(curl -sf http://localhost:8787/health 2>/dev/null || echo "")
+    [ -n "$HEALTH" ] && break
+    sleep 1
+    ATTEMPTS=$((ATTEMPTS + 1))
+  done
   if [ -n "$HEALTH" ]; then
     STATUS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
     echo "✓ Headroom proxy: $STATUS (localhost:8787)"
   else
-    echo "⚠️  Proxy não respondeu. Verificar:"
+    echo "⚠️  Proxy não respondeu após ${ATTEMPTS}s. Verificar:"
     echo "   systemctl --user status headroom.service"
     echo "   journalctl --user -u headroom.service -n 20"
   fi
