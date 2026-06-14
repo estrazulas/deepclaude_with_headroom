@@ -2,7 +2,7 @@
   <h1>🪄 DeepClaude + Headroom</h1>
   <p><strong>Automated setup of Headroom AI proxy with DeepClaude for Claude Code via DeepSeek API</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/headroom-0.25.0-blue" alt="Headroom">
+    <img src="https://img.shields.io/badge/headroom-0.25.1-blue" alt="Headroom">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
     <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Linux">
   </p>
@@ -87,7 +87,7 @@ If you compiled headroom from source — whether a security-hardened fork, an in
 ```bash
 # Generic — any custom .whl
 bash install.sh \
-  --headroom-release "https://github.com/<you>/<repo>/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --headroom-release "https://github.com/<you>/<repo>/releases/download/v0.25.1/headroom_ai-0.25.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
   --headroom-sha256 "abc123..."
 ```
 
