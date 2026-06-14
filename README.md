@@ -44,6 +44,24 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 
 ---
 
+## 📋 Prerequisites
+
+> 🐧 **Linux only.** The installer and systemd service assume a Linux distribution with `systemd --user` support (Ubuntu ≥ 20.04, Debian ≥ 11, Fedora ≥ 35, Arch, etc.).
+
+| Requirement | Why | Install |
+|-------------|-----|---------|
+| **Claude Code** | Slash commands, settings.json | `npm install -g @anthropic-ai/claude-code` |
+| **Python 3** | JSON mangling, health check parsing | `sudo apt install python3` |
+| **curl** | Custom `.whl` download, health check | `sudo apt install curl` |
+| **git** | Clone this repo | `sudo apt install git` |
+| **sudo** | Install deepclaude to `/usr/local/bin`, apt for pipx | Included in most distros |
+| **DeepSeek API Key** | Proxy ↔ DeepSeek communication | [platform.deepseek.com](https://platform.deepseek.com) |
+
+> ℹ️ `pipx` is installed automatically by the script if missing (`sudo apt install pipx`).  
+> ℹ️ `jq` is not required for installation but useful for querying `/stats` (see Usage).
+
+---
+
 ## 🚀 Installation
 
 ```bash
@@ -109,14 +127,6 @@ bash install.sh --full
 ```
 
 Installs `headroom-ai[all]` (~2 GB) without prompting — includes vector memory, image support, ML, etc. Plus everything from the default install.
-
----
-
-## 📋 Prerequisites
-
-- **Claude Code** installed (`npm install -g @anthropic-ai/claude-code`)
-- **Python 3** + **jq** (`sudo apt install python3 jq`)
-- **DeepSeek API Key** — sign up at [platform.deepseek.com](https://platform.deepseek.com)
 
 ---
 
