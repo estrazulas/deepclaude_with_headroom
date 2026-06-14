@@ -9,12 +9,14 @@ set -euo pipefail
 DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
-for arg in "$@"; do
-  case "$arg" in
+while [[ $# -gt 0 ]]; do
+  case "$1" in
     --dry-run) DRY_RUN=true ;;
     --full) FULL=true ;;
-    --headroom-release) HEADROOM_RELEASE="$2"; shift ;;
-    --headroom-release=*) HEADROOM_RELEASE="${arg#*=}" ;;
+    --headroom-release)
+      HEADROOM_RELEASE="$2"
+      shift  # consome o valor (o shift abaixo consome a flag)
+      ;;
   esac
   shift
 done
