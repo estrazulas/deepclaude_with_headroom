@@ -12,5 +12,26 @@ RestartSec=5
 Environment=HEADROOM_HOST=127.0.0.1
 Environment=HEADROOM_PORT=8787
 
+# --- Security hardening ---
+# Filesystem
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%h/.headroom
+PrivateTmp=yes
+PrivateDevices=yes
+# Privileges
+NoNewPrivileges=yes
+# Network (only AF_INET + AF_INET6 + AF_UNIX)
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+# Resources
+MemoryMax=1G
+# Sandbox (allow exec so headroom can spawn itself for workers)
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+SystemCallArchitectures=native
+RestrictRealtime=yes
+
 [Install]
 WantedBy=default.target

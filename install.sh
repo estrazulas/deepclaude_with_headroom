@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Instalador Headroom + DeepClaude + Comandos Claude Code
-# Uso: bash install.sh [--dry-run] [--full] [--headroom-release <url>]
+# Uso: bash install.sh [--dry-run] [--full] [--headroom-release <url>] [--headroom-sha256 <hash>]
 #   --full                     Instala headroom-ai com todos os extras ([all]) sem perguntar
 #   --headroom-release <url>   Usa um release próprio (ex: fork compilado) em vez do PyPI oficial
+#   --headroom-sha256 <hash>   Verifica integridade do .whl antes de instalar (recomendado com --headroom-release)
 
 set -euo pipefail
 
@@ -10,13 +11,18 @@ DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
 HEADROOM_VERSION="0.25.0"  # versão pinada que sabemos que funciona
+HEADROOM_SHA256=""  # hash esperado do .whl (opcional, recomendado com --headroom-release)
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=true ;;
     --full) FULL=true ;;
     --headroom-release)
       HEADROOM_RELEASE="$2"
-      shift  # consome o valor (o shift abaixo consome a flag)
+      shift
+      ;;
+    --headroom-sha256)
+      HEADROOM_SHA256="$2"
+      shift
       ;;
   esac
   shift
@@ -120,8 +126,32 @@ echo "━━━ 2. Instalando Headroom CLI ━━━"
 
 # Se --headroom-release foi passado, usa essa URL em vez do PyPI
 if [ -n "$HEADROOM_RELEASE" ]; then
-  INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
   echo "  🌐 Release próprio: $HEADROOM_RELEASE"
+
+  # --- SHA256 verification (A) ---
+  if [ -n "$HEADROOM_SHA256" ]; then
+    TMP_WHL="/tmp/headroom_$(basename "$HEADROOM_RELEASE")"
+    echo "  🔐 Verificando SHA256..."
+    if $DRY_RUN; then
+      echo "[dry-run] Baixaria $HEADROOM_RELEASE → validaria SHA256=$HEADROOM_SHA256"
+    else
+      curl -fsSL -o "$TMP_WHL" "$HEADROOM_RELEASE"
+      LOCAL_HASH=$(sha256sum "$TMP_WHL" | awk '{print $1}')
+      if [ "$LOCAL_HASH" != "$HEADROOM_SHA256" ]; then
+        echo "❌ ERRO: Hash SHA256 do arquivo não confere!"
+        echo "   Esperado:  $HEADROOM_SHA256"
+        echo "   Obtido:    $LOCAL_HASH"
+        echo "   O arquivo pode ter sido adulterado ou corrompido."
+        rm -f "$TMP_WHL"
+        exit 1
+      fi
+      echo "✓ SHA256 confere ($LOCAL_HASH)"
+      INSTALL_TARGET="${TMP_WHL}[$EXTRAS]"
+    fi
+  else
+    echo "  ⚠️  Nenhum --headroom-sha256 fornecido. Pulando verificação de integridade."
+    INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
+  fi
 else
   INSTALL_TARGET="headroom-ai[$EXTRAS]==$HEADROOM_VERSION"
 fi
@@ -180,6 +210,21 @@ else
       fi
     fi
   fi
+fi
+
+# --- Post-install verification (C) ---
+if ! $DRY_RUN && command -v headroom &>/dev/null; then
+  INSTALLED_VER=$(headroom --version 2>/dev/null | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' || true)
+  if [ -z "$INSTALLED_VER" ]; then
+    echo "⚠️  Não foi possível verificar a versão instalada do headroom."
+  elif [ "$INSTALLED_VER" != "$HEADROOM_VERSION" ]; then
+    echo "⚠️  Versão instalada ($INSTALLED_VER) ≠ esperada ($HEADROOM_VERSION)."
+    echo "   Execute 'headroom --version' para confirmar."
+  else
+    echo "✓ Post-check: headroom $INSTALLED_VER instalado corretamente"
+  fi
+  # Cleanup temp file
+  [ -n "${TMP_WHL:-}" ] && [ -f "$TMP_WHL" ] && rm -f "$TMP_WHL"
 fi
 
 # ═══════════════════════════════════════════
