@@ -1,17 +1,22 @@
 #!/usr/bin/env bash
 # Instalador Headroom + DeepClaude + Comandos Claude Code
-# Uso: bash install.sh [--dry-run] [--full]
-#   --full               Instala headroom-ai com todos os extras ([all]) sem perguntar
+# Uso: bash install.sh [--dry-run] [--full] [--headroom-release <url>]
+#   --full                     Instala headroom-ai com todos os extras ([all]) sem perguntar
+#   --headroom-release <url>   Usa um release próprio (ex: fork compilado) em vez do PyPI oficial
 
 set -euo pipefail
 
 DRY_RUN=false
 FULL=false
+HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=true ;;
     --full) FULL=true ;;
+    --headroom-release) HEADROOM_RELEASE="$2"; shift ;;
+    --headroom-release=*) HEADROOM_RELEASE="${arg#*=}" ;;
   esac
+  shift
 done
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -110,6 +115,14 @@ fi
 echo ""
 echo "━━━ 2. Instalando Headroom CLI ━━━"
 
+# Se --headroom-release foi passado, usa essa URL em vez do PyPI
+if [ -n "$HEADROOM_RELEASE" ]; then
+  INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
+  echo "  🌐 Release próprio: $HEADROOM_RELEASE"
+else
+  INSTALL_TARGET="headroom-ai[$EXTRAS]"
+fi
+
 if command -v headroom &>/dev/null; then
   echo "✓ headroom $(headroom --version) já instalado"
 else
@@ -120,12 +133,12 @@ else
   elif $FULL; then
     echo "  Modo completo: instalando headroom-ai[all]..."
     if command -v pipx &>/dev/null; then
-      pipx install "headroom-ai[all]"
+      pipx install "$INSTALL_TARGET"
     else
       echo "  pipx não encontrado. Instalando pipx primeiro..."
       sudo apt update && sudo apt install -y pipx
       pipx ensurepath
-      pipx install "headroom-ai[all]"
+      pipx install "$INSTALL_TARGET"
     fi
     if command -v headroom &>/dev/null; then
       echo "✓ headroom $(headroom --version) instalado (completo)"
@@ -138,14 +151,14 @@ else
       resp="${resp:-S}"
       if [[ "$resp" =~ ^[SsYy] ]]; then
         echo "  Instalando headroom-ai[proxy,code,mcp]..."
-        pipx install "headroom-ai[proxy,code,mcp]"
+        pipx install "$INSTALL_TARGET"
         if command -v headroom &>/dev/null; then
           echo "✓ headroom $(headroom --version) instalado"
         else
           echo "⚠️  Instalado, mas não está no PATH. Execute: source ~/.bashrc"
         fi
       else
-        echo "  Depois: pipx install 'headroom-ai[proxy,code,mcp]'"
+        echo "  Depois: pipx install '$INSTALL_TARGET'"
       fi
     else
       read -r -p "  pipx não encontrado. Instalar? [S/n]: " resp </dev/tty
@@ -154,13 +167,13 @@ else
         sudo apt update && sudo apt install -y pipx
         pipx ensurepath
         echo "✓ pipx instalado. Instalando headroom-ai[proxy,code,mcp]..."
-        pipx install "headroom-ai[proxy,code,mcp]"
+        pipx install "$INSTALL_TARGET"
         echo "✓ headroom instalado. Execute 'source ~/.bashrc' para atualizar o PATH."
       else
         echo ""
         echo "  Passos manuais:"
         echo "    sudo apt install pipx && pipx ensurepath"
-        echo "    pipx install 'headroom-ai[proxy,code,mcp]'"
+        echo "    pipx install '$INSTALL_TARGET'"
       fi
     fi
   fi

@@ -57,6 +57,17 @@ cd deepclaude_with_headroom
 |------|----------|:----------:|:---------|
 | *(none)* | ⚡ Light `[proxy,code,mcp]` *(prompts)* | ✅ | Proxy + DeepClaude |
 | `--full` | 🔥 Complete `[all]` *(auto)* | ✅ | Everything |
+| `--headroom-release <url>` | 🛡️ Your own `.whl` release | ✅ | Internal/audited builds |
+
+### 🛡️ Custom release (from your own fork)
+
+If you built headroom from source (see [headroom_sanitizer](https://github.com/estrazulas/headroom_sanitizer)), pass your own `.whl` release URL:
+
+```bash
+bash install.sh --headroom-release "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.0/headroom_ai-0.25.0-cp310-abi3-manylinux_2_35_x86_64.whl"
+```
+
+This installs your compiled release instead of the official PyPI package. Compatible with `--full` and `--dry-run`.
 
 ### ⚡ Default — Light headroom + DeepClaude
 
