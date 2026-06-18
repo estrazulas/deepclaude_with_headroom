@@ -101,7 +101,7 @@ fi
 
 # 2b. Auth config
 echo ""
-echo "━━━ 2b. Configuração Auth — Neo4j + Qdrant ━━━"
+echo "━━━ 2b. Config Auth: Neo4j + Encryption ━━━"
 
 NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
 NEO4J_USER="${NEO4J_USER:-neo4j}"
@@ -113,8 +113,8 @@ _write_config() {
   cat > "$HEADROOM_CONFIG_FILE" << INNER
 # HeadroomGate Auth Configuration
 # Lido por headroom.service e deepclaudehr.
-HEADROOM_API_KEY="YOUR_HEADROOM_API_KEY_HERE"
-HEADROOM_ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
+HEADROOM_API_KEY="${API_KEY}"
+HEADROOM_ENCRYPTION_KEY="${ENCRYPTION_KEY}"
 HEADROOM_PROXY_URL="http://localhost:8787"
 NEO4J_URI="${NEO4J_URI}"
 NEO4J_USER="${NEO4J_USER}"
@@ -124,7 +124,7 @@ INNER
   chmod 600 "$HEADROOM_CONFIG_FILE"
 }
 
-_try_connect_neo4j() {
+_try_connect() {
   local py=""
   if [ -x "$HOME/.local/share/pipx/venvs/headroom-ai/bin/python" ]; then
     py="$HOME/.local/share/pipx/venvs/headroom-ai/bin/python"
@@ -147,34 +147,114 @@ except:
   return 1
 }
 
-_ask_db_credentials() {
-  echo ""
-  echo "  🗄️  Neo4j não acessível em $NEO4J_URI (user: $NEO4J_USER)."
-  echo "      Informe os dados ou Enter para manter:"
-  echo ""
-  read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
-  read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
-  read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
-  read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
-  _write_config
+# Check if Neo4j has existing users
+_db_has_users() {
+  if command -v headroom &>/dev/null; then
+    # If auth CLI works, users exist
+    headroom auth list-users 2>/dev/null | grep -q . && return 0
+  fi
+  return 1
 }
 
 if $DRY_RUN; then
+  echo "[dry-run] Perguntaria: ja tem Neo4j + encryption key?"
+  echo "[dry-run] Se sim: pede credenciais e keys existentes"
+  echo "[dry-run] Se nao: detecta se Neo4j acessivel, oferece bootstrap automatico"
   echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE"
 else
-  _write_config
-  echo "✓ $HEADROOM_CONFIG_FILE"
-  if [ "$NEO4J_URI" != "bolt://localhost:7687" ] || [ "$QDRANT_URL" != "http://localhost:6333" ]; then
-    echo "  ℹ️  Neo4j/Qdrant detectados do ambiente"
-  fi
-  if _try_connect_neo4j; then
-    echo "  ✓ Neo4j conectado ($NEO4J_URI)"
-  else
-    _ask_db_credentials
-    if _try_connect_neo4j; then
-      echo "  ✓ Neo4j conectado ($NEO4J_URI)"
+  API_KEY="YOUR_HEADROOM_API_KEY_HERE"
+  ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
+
+  echo ""
+  echo "  Se voce ja configurou o Neo4j antes, pode informar as chaves."
+  echo "  Se nao, o installer pode fazer o bootstrap agora (init-db,"
+  echo "  criar admin, gerar API key + encryption key)."
+  echo ""
+  read -r -p "  Ja tem Neo4j + encryption key configurados? [S/n]: " has_existing </dev/tty
+  has_existing="${has_existing:-S}"
+
+  if [[ "$has_existing" =~ ^[SsYy] ]]; then
+    # ---- Existing setup: ask for keys ----
+    echo ""
+    read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
+    read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
+    read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
+    read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+    echo ""
+    read -r -p "  HEADROOM_ENCRYPTION_KEY: " ENCRYPTION_KEY </dev/tty
+    read -r -p "  HEADROOM_API_KEY (hr_..., Enter se nao tiver): " input </dev/tty
+    [ -n "$input" ] && API_KEY="$input"
+
+    _write_config
+    echo "✓ $HEADROOM_CONFIG_FILE"
+
+    if _try_connect; then
+      echo "  ✓ Neo4j conectado ($NEO4J_URI) — proxy pronto"
     else
-      echo "  ⚠️  Ainda sem conexão. Edite depois: $HEADROOM_CONFIG_FILE"
+      echo "  ⚠️  Neo4j nao acessivel. Verifique: $NEO4J_URI"
+    fi
+  else
+    # ---- Fresh / empty Neo4j: offer bootstrap ----
+    echo ""
+    if _try_connect; then
+      echo "  ✓ Neo4j conectado ($NEO4J_URI)"
+      echo ""
+      echo "  Nenhum usuario encontrado. Posso fazer o bootstrap agora:"
+      echo "    - init-db (constraints + roles)"
+      echo "    - create-user admin --role admin"
+      echo "    - create-key admin (gera API key)"
+      echo "    - generate-key (encryption key)"
+      echo "    - Escrever tudo em $HEADROOM_CONFIG_FILE"
+      echo ""
+      read -r -p "  Fazer bootstrap automatico? [S/n]: " do_bootstrap </dev/tty
+      do_bootstrap="${do_bootstrap:-S}"
+
+      if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
+        echo ""
+        headroom auth init-db -y 2>&1 | sed 's/^/  /'
+        headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
+        API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
+        ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+        _write_config
+        echo ""
+        echo "  ✓ Bootstrap concluido!"
+        echo "  API_KEY:        ${API_KEY}"
+        echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+      else
+        _write_config
+        echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
+      fi
+    else
+      # Neo4j not reachable — ask for credentials, try again
+      echo "  🗄️  Neo4j nao acessivel em $NEO4J_URI."
+      echo ""
+      read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
+      read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
+      read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
+      read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+
+      if _try_connect; then
+        echo "  ✓ Neo4j conectado!"
+        echo ""
+        read -r -p "  Fazer bootstrap agora? [S/n]: " do_bootstrap </dev/tty
+        do_bootstrap="${do_bootstrap:-S}"
+        if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
+          headroom auth init-db -y 2>&1 | sed 's/^/  /'
+          headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
+          API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
+          ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+          _write_config
+          echo "  ✓ Bootstrap concluido!"
+          echo "  API_KEY:        ${API_KEY}"
+          echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+        else
+          _write_config
+          echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
+        fi
+      else
+        _write_config
+        echo "  ⚠️  Ainda sem conexao. Edite depois: $HEADROOM_CONFIG_FILE"
+      fi
     fi
   fi
 fi
