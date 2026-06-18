@@ -71,18 +71,45 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 ```bash
 git clone https://github.com/estrazulas/deepclaude_with_headroom.git
 cd deepclaude_with_headroom
-
-# Installs the official headroom‑ai from PyPI (unless --headroom-release is given)
-bash install.sh
+bash install.sh   # launcher interativo — escolha o modo
 ```
 
-### Original vs Headroomgate (Auth fork)
+### Installation modes
 
-| Flag | Source | Auth + Audit | Best for |
-|------|--------|:------------:|:---------|
-| *(none)* | PyPI `headroom-ai` | ❌ | Proxy + compression |
-| `--full` | PyPI `headroom-ai[all]` | ❌ | All extras |
-| `--headroom-release` (headroomgate) | Fork with auth plugin | ✅ | Teams / enterprise |
+```
+install.sh (launcher)
+│
+├─ [1] setup_local_hr_only.sh
+│   └─ Proxy local (original PyPI)
+│       ├── pipx install headroom-ai[proxy,code,mcp]
+│       ├── systemd service (sem auth)
+│       ├── DEEPSEEK_API_KEY → ~/.zshrc
+│       ├── deepclaude + deepclaudehr
+│       └── /mem, /headroom_usage
+│
+├─ [2] setup_local_hr_gate.sh
+│   └─ Proxy local (headroomgate fork)
+│       ├── pipx install headroom-ai[proxy,code,mcp,auth]
+│       ├── pipx inject headroom-auth (plugin)
+│       ├── ~/.config/headroom/env (Neo4j + Qdrant)
+│       ├── systemd service (COM auth + log-messages)
+│       ├── deepclaude + deepclaudehr
+│       ├── /mem, /headroom_usage
+│       └── 📋 Bootstrap instructions (admin cria keys)
+│
+└─ [3] setup_new_dev_hr_gate.sh
+    └─ Dev cliente (proxy REMOTO)
+        ├── ~/.config/headroom/env (PROXY_URL + API_KEY)
+        ├── deepclaude + deepclaudehr
+        ├── /mem, /headroom_usage
+        └── ❌ sem pipx, systemd, Neo4j, Qdrant
+```
+
+| Mode | Proxy | Auth | Neo4j | Ideal para |
+|:----:|:-----:|:----:|:-----:|------------|
+| 1 | localhost | ❌ | ❌ | Uso pessoal, compressão |
+| 2 | localhost | ✅ | ✅ | Admin que gerencia o time |
+| 3 | **remoto** | ✅ | ❌ | Dev que usa o proxy do admin |
 
 ### 🔐 Headroomgate — Auth + Audit (recommended for teams)
 
