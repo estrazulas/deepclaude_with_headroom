@@ -2,7 +2,7 @@
   <h1>🪄 DeepClaude + Headroom</h1>
   <p><strong>Automated setup of Headroom AI proxy with DeepClaude for Claude Code via DeepSeek API</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/headroom-0.25.1-blue" alt="Headroom">
+    <img src="https://img.shields.io/badge/headroom-0.26.1-blue" alt="Headroom">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
     <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Linux">
   </p>
@@ -38,10 +38,11 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 | **Headroom CLI** | Compression proxy with `[proxy,code,mcp]` (light) or `[all]` (complete) extras |
 | **Headroom systemd service** | Auto-start on Linux boot |
 | **deepclaude** | Terminal command — Claude Code via DeepSeek |
-| **deepclaudehr** | Shorthand — deepclaude + Headroom proxy |
+| **deepclaudehr** | Terminal command — Claude Code via Headroom proxy (with optional auth) |
 | **`/headroom_usage`** | Claude Code slash command — proxy savings dashboard |
 | **`/mem`** | Claude Code slash command — persistent memory browser |
 | **DEEPSEEK_API_KEY** | Auto-configured in shell (.zshrc/.bashrc) |
+| **`~/.config/headroom/env`** | Auth config (headroomgate fork only, created as template) |
 
 ---
 
@@ -73,39 +74,49 @@ cd deepclaude_with_headroom
 bash install.sh
 ```
 
-### Flag combinations
+### Original vs Headroomgate (Auth fork)
 
-| Flag | Headroom | DeepClaude | Best for |
-|------|----------|:----------:|:---------|
-| *(none)* | ⚡ Light `[proxy,code,mcp]` *(prompts)* | ✅ | Proxy + DeepClaude |
-| `--full` | 🔥 Complete `[all]` *(auto)* | ✅ | Everything |
-| `--headroom-release <url>` | 🛡️ Your own `.whl` release | ✅ | Internal/audited builds |
+| Flag | Source | Auth + Audit | Best for |
+|------|--------|:------------:|:---------|
+| *(none)* | PyPI `headroom-ai` | ❌ | Proxy + compression |
+| `--full` | PyPI `headroom-ai[all]` | ❌ | All extras |
+| `--headroom-release` (headroomgate) | Fork with auth plugin | ✅ | Teams / enterprise |
 
-### 🛡️ Custom release (your own fork or audited build)
+### 🔐 Headroomgate — Auth + Audit (recommended for teams)
 
-If you compiled headroom from source — whether a security-hardened fork, an internal build, or a patched version — pass the `.whl` URL with `--headroom-release`. For integrity, you can also provide the expected SHA256 so the installer verifies the file before pipx installs it.
+The [headroomgate](https://github.com/estrazulas/headroomgate) fork adds multi-user authentication, per-user rate limiting, request audit trail, semantic search, and encrypted provider key storage — on top of all upstream compression features.
 
 ```bash
-# Generic — any custom .whl
 bash install.sh \
-  --headroom-release "https://github.com/<you>/<repo>/releases/download/v0.25.1/headroom_ai-0.25.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "abc123..."
+  --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --headroom-sha256 "<main_wheel_sha256>" \
+  --headroom-auth-sha256 "<auth_plugin_sha256>"
 ```
 
+The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `headroom_auth`). Use `--headroom-auth-release` / `--headroom-auth-sha256` for explicit control.
+
+After install, follow the **bootstrap instructions** printed by the installer to create your admin user, API key, and provider keys.
+
+### 🛡️ Custom release (generic)
+
+Any custom `.whl` works with `--headroom-release`. For integrity, pass `--headroom-sha256`.
+
 ```bash
-# Example — security‑hardened sanitizer build
 bash install.sh \
-  --headroom-release "https://github.com/estrazulas/headroom_sanitizer/releases/download/v0.25.1/headroom_ai-0.25.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "a66f466f9281663fb610c1ab3ada5b7010a8001ffdcfc6fae60c35ed1c0b5a69"
+  --headroom-release "https://github.com/<you>/<repo>/releases/download/vX.Y.Z/headroom_ai-X.Y.Z-....whl" \
+  --headroom-sha256 "abc123..."
 ```
 
 | Flag | Purpose |
 |------|---------|
 | `--headroom-release <url>` | Use your own `.whl` instead of the official PyPI package |
-| `--headroom-sha256 <hash>` | Verify file integrity before installing (recommended) |
+| `--headroom-sha256 <hash>` | Verify main wheel integrity before installing |
+| `--headroom-auth-release <url>` | Auth plugin `.whl` (headroomgate, usually auto-derived) |
+| `--headroom-auth-sha256 <hash>` | Verify auth plugin integrity |
+| `--full` | Install all extras (`[all]`) without prompting |
+| `--dry-run` | Simulate installation — print what would happen |
 
-> ⚠️ Without `--headroom-sha256` the installer skips integrity verification.  
-> Both flags are compatible with `--full` and `--dry-run`.
+> ⚠️ Without `--headroom-sha256` the installer skips integrity verification.
 
 ### ⚡ Default — Light headroom + DeepClaude
 
@@ -174,11 +185,13 @@ You (terminal)
        │                                                (direct, no proxy)
        │
        └── deepclaudehr ───► Headroom Proxy (:8787) ──► DeepSeek API
-                             │                          (with compression)
+                             │                          (compression + optional auth)
                              ├── context compression
                              ├── smart caching
                              ├── code-aware (AST)
-                             └── MCP support
+                             ├── MCP support
+                             ├── HEADROOM_API_KEY auth (headroomgate)
+                             └── audit logging (headroomgate)
 ```
 
 ---
@@ -190,6 +203,8 @@ You (terminal)
 | `DEEPSEEK_API_KEY` | `sk-...` | ✅ |
 | `OPENROUTER_API_KEY` | `sk-...` | For OpenRouter |
 | `FIREWORKS_API_KEY` | `...` | For Fireworks |
+| `HEADROOM_API_KEY` | `hr_...` | headroomgate auth (set by `deepclaudehr`) |
+| `HEADROOM_ENCRYPTION_KEY` | `...` | headroomgate encryption (in `~/.config/headroom/env`) |
 
 Set automatically by deepclaude:
 

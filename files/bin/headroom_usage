@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Helper script for /headroom_economy command
+# Helper script for /headroom_usage command
 # Mostra estatísticas de economia do Headroom proxy
 
 STATS=$(curl -sf http://localhost:8787/stats 2>/dev/null)
@@ -106,5 +106,5 @@ echo "$STATS" | jq -r '
   end
 '
 echo ""
-echo "➡️  Use /headroom_economy -v  para JSON completo"
-echo "   Use /headroom_economy -p  para métricas Prometheus"
+echo "➡️  Use /headroom_usage -v  para JSON completo"
+echo "   Use /headroom_usage -p  para métricas Prometheus"

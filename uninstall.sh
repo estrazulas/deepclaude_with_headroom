@@ -66,6 +66,27 @@ else
 fi
 
 # ═══════════════════════════════════════════
+# 1b. HEADROOM AUTH CONFIG (headroomgate)
+# ═══════════════════════════════════════════
+
+echo ""
+echo "━━━ 1b. Config Auth (headroomgate) ━━━"
+
+HEADROOM_CONFIG_DIR="$HOME/.config/headroom"
+if [ -d "$HEADROOM_CONFIG_DIR" ]; then
+  if $KEEP_CONFIG; then
+    echo "  --keep-config: config auth preservada"
+  elif $DRY_RUN; then
+    echo "[dry-run] rm -rf $HEADROOM_CONFIG_DIR"
+  else
+    rm -rf "$HEADROOM_CONFIG_DIR"
+    echo "✓ $HEADROOM_CONFIG_DIR removido"
+  fi
+else
+  echo "  Nada a fazer (config auth não encontrada)"
+fi
+
+# ═══════════════════════════════════════════
 # 2. HEADROOM CLI (pipx)
 # ═══════════════════════════════════════════
 
@@ -227,6 +248,7 @@ echo ""
 LEFT=""
 command -v headroom &>/dev/null && LEFT="$LEFT\n  - headroom CLI ainda no PATH"
 [ -f "$SYSTEMD_USER_DIR/headroom.service" ] && LEFT="$LEFT\n  - $SYSTEMD_USER_DIR/headroom.service"
+[ -d "$HOME/.config/headroom" ] && LEFT="$LEFT\n  - $HOME/.config/headroom/ (config auth)"
 [ -f "$COMMANDS_DIR/headroom_usage.md" ] && LEFT="$LEFT\n  - $COMMANDS_DIR/headroom_usage.md"
 [ -f /usr/local/bin/deepclaude ] && LEFT="$LEFT\n  - /usr/local/bin/deepclaude"
 
@@ -239,4 +261,5 @@ if ! $DRY_RUN && ! $KEEP_CONFIG; then
   echo "  Para limpar completamente, remova também (se desejar):"
   echo "    rm -rf ~/.headroom   # cache e dados do proxy"
   echo "    rm -rf ~/.cache/headroom"
+  echo "    rm -rf ~/.config/headroom  # config auth (headroomgate)"
 fi

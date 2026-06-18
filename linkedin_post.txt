@@ -1,0 +1,23 @@
+For a few months, I have been running Claude Code on top of DeepSeek V4 Pro and V4 Flash using the DeepClaude wrapper, created by Ali Attaran (@ali-attaran). I first came across the project through a video by Rafael Quintanilha (@rafaelquintanilha) (https://www.youtube.com/watch?v=Vw-sfkqVmow), where he demonstrated how this setup redirects the Claude Code tool loop to DeepSeek's API endpoint via environment variable overrides, yielding a substantial reduction in API costs compared to running directly against Anthropic's backend, while preserving the full agentic loop (file editing, bash, git, subagent spawning).
+
+I recently attended a technical presentation by Tejas Chopra (@tejas-chopra), a senior engineer at Netflix, at the Open Source Summit North America, where he demonstrated Headroom, an open-source proxy that sits between the application and the LLM. It intercepts the token stream, applies context compression (AST-aware, JSON, DOM, and general text compression), caching, and CCR (Compress, Cache, and Retrieve) techniques. The result is a reported 60 to 95 percent reduction in token consumption without meaningful degradation in response quality. The full presentation is available here: https://www.youtube.com/watch?v=UOWSHg18cL0
+
+The resulting architecture combines both projects into a single flow (the full installer and documentation are available at github.com/estrazulas/deepclaude_with_headroom):
+
+Terminal
+  | deepclaude       -> DeepSeek API (direct)
+  | deepclaudehr     -> Headroom (:8787) -> DeepSeek API
+                        -> compression + cache + AST + MCP
+
+The deepclaudehr command is the core of this integration. It launches Claude Code through the Headroom proxy, combining DeepSeek's cost efficiency with Headroom's context compression resulting in savings from both the cheaper backend and the reduced token payload.
+
+To make this setup easily reproducible, I created an installer with two installation modes:
+
+- Standard installation pulls the official Headroom package directly from PyPI
+- Custom distribution built from a fork of the original project (headroomgate), compiled as a custom package for future security extensions
+
+I chose to produce a custom compiled package from the fork, as I plan to extend the proxy with additional layers for data sanitization and sensitive information filtering in future iterations, providing a safety boundary for organizations concerned with accidental data exposure through developer prompts.
+
+For now, I am using this setup on personal projects with the DeepSeek backend, where the savings are already noticeable. The real value of the proxy, however, will become evident when routing more expensive models through it such as Anthropic Opus where every token reduction directly translates into significant cost savings. I intend to adopt that setup once a direct Claude Code license is in place.
+
+The original projects by Ali Attaran (@ali-attaran) (DeepClaude) and Tejas Chopra (@tejas-chopra) (Headroom) are referenced in the repositories as well.

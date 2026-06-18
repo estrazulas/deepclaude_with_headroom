@@ -1,16 +1,17 @@
 [Unit]
 Description=Headroom AI Proxy — context compression for Claude
-Documentation=https://github.com/nicholasgriffintn/headroom-ai
+Documentation=https://github.com/estrazulas/headroomgate
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/headroom proxy --memory --learn --code-aware --anthropic-api-url https://api.deepseek.com/anthropic
+ExecStart=%h/.local/bin/headroom proxy --memory --learn --code-aware --anthropic-api-url https://api.deepseek.com/anthropic __HEADROOM_EXTRA_ARGS__
 Restart=on-failure
 RestartSec=5
 Environment=HEADROOM_HOST=127.0.0.1
 Environment=HEADROOM_PORT=8787
+__HEADROOM_ENVIRONMENT_FILE__
 
 # --- Security hardening (user-service compatible) ---
 # Removed: PrivateDevices, ProtectKernelModules — require CAP_MKNOD/CAP_SYS_ADMIN

@@ -1,6 +1,6 @@
 # 🔒 Security Check — Prompt Estruturado para Auditoria
 
-> Prompt usado na auditoria de segurança do headroom_sanitizer v0.25.0  
+> Prompt usado na auditoria de segurança do headroomgate v0.25.0  
 > Data: 2026-06-14
 
 ---
@@ -9,14 +9,14 @@ Você é um engenheiro de segurança sênior com experiência em análise de có
 
 ## Contexto
 
-- Repositório alvo: [headroom_sanitizer](https://github.com/estrazulas/headroom_sanitizer) (fork do projeto headroom)
+- Repositório alvo: [headroomgate](https://github.com/estrazulas/headroomgate) (fork do projeto headroom)
 - Repositório relacionado: [deepclaude_with_headroom](https://github.com/estrazulas/deepclaude_with_headroom) (instaladores modificados com releases customizadas)
-- Motivação: O headroom_sanitizer será usado em um repositório controlado e precisa ser auditado antes do uso
+- Motivação: O headroomgate será usado em um repositório controlado e precisa ser auditado antes do uso
 - Origem: O headroom original é um proxy que passa tráfego entre o Claude Code e a API do provedor — portanto lida com chaves de API e tokens no tráfego
 
 ## Dados para análise
 
-Analise o código-fonte do repositório headroom_sanitizer (clone local ou via GitHub) verificando:
+Analise o código-fonte do repositório headroomgate (clone local ou via GitHub) verificando:
 
 1. **Arquivos de configuração** — `.env`, `config.*`, `*.yaml`, `*.json`, `*.toml` que possam conter secrets
 2. **Código fonte** — arquivos `.py`, `.sh`, `.js`, `.ts` com variáveis de ambiente, URLs hardcoded, tokens
@@ -34,13 +34,13 @@ Padrões a buscar:
 ## Histórico
 
 - O headroom original é um projeto legítimo de compressão/cache para LLMs
-- O fork headroom_sanitizer foi criado para aplicar modificações de segurança
+- O fork headroomgate foi criado para aplicar modificações de segurança
 - O deepclaude_with_headroom contém instaladores que fazem referência a releases customizadas do fork
 - Ainda não foi feita uma varredura sistemática de segurança no código
 
 ## Tarefa
 
-Conduza uma auditoria de segurança no repositório headroom_sanitizer seguindo estas etapas:
+Conduza uma auditoria de segurança no repositório headroomgate seguindo estas etapas:
 
 1. **Varredura inicial** — Identifique todos os arquivos que podem conter dados sensíveis (config, env, histórico git)
 2. **Análise de secrets** — Busque por padrões de chaves de API, tokens, senhas e credenciais no código e no histórico do git
