@@ -10,40 +10,40 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Se já tem flags, vai direto pro modo apropriado
 AUTO_MODE=""
-FORWARD_ARGS=""
+FORWARD_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --headroom-release)
       AUTO_MODE=2
-      FORWARD_ARGS="$FORWARD_ARGS --headroom-release \"$2\""
+      FORWARD_ARGS+=("--headroom-release" "$2")
       shift 2 ;;
     --headroom-sha256)
       [ -z "$AUTO_MODE" ] && AUTO_MODE=2
-      FORWARD_ARGS="$FORWARD_ARGS --headroom-sha256 \"$2\""
+      FORWARD_ARGS+=("--headroom-sha256" "$2")
       shift 2 ;;
     --headroom-auth-release)
       [ -z "$AUTO_MODE" ] && AUTO_MODE=2
-      FORWARD_ARGS="$FORWARD_ARGS --headroom-auth-release \"$2\""
+      FORWARD_ARGS+=("--headroom-auth-release" "$2")
       shift 2 ;;
     --headroom-auth-sha256)
       [ -z "$AUTO_MODE" ] && AUTO_MODE=2
-      FORWARD_ARGS="$FORWARD_ARGS --headroom-auth-sha256 \"$2\""
+      FORWARD_ARGS+=("--headroom-auth-sha256" "$2")
       shift 2 ;;
     --proxy-url)
       AUTO_MODE=3
-      FORWARD_ARGS="$FORWARD_ARGS --proxy-url \"$2\""
+      FORWARD_ARGS+=("--proxy-url" "$2")
       shift 2 ;;
     --api-key)
       [ -z "$AUTO_MODE" ] && AUTO_MODE=3
-      FORWARD_ARGS="$FORWARD_ARGS --api-key \"$2\""
+      FORWARD_ARGS+=("--api-key" "$2")
       shift 2 ;;
     --full)
       [ -z "$AUTO_MODE" ] && AUTO_MODE=1
-      FORWARD_ARGS="$FORWARD_ARGS --full"
+      FORWARD_ARGS+=("--full")
       shift ;;
     --dry-run)
-      FORWARD_ARGS="$FORWARD_ARGS --dry-run"
+      FORWARD_ARGS+=("--dry-run")
       shift ;;
     *)
       echo "Flag desconhecida: $1"
@@ -51,12 +51,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# Se tem flags suficientes, roda direto
+# Se tem flags suficientes, roda direto (array forwarding)
 if [ -n "$AUTO_MODE" ]; then
   case "$AUTO_MODE" in
-    1) exec bash "$SCRIPT_DIR/setup_local_hr_only.sh" $FORWARD_ARGS ;;
-    2) exec bash "$SCRIPT_DIR/setup_local_hr_gate.sh" $FORWARD_ARGS ;;
-    3) exec bash "$SCRIPT_DIR/setup_new_dev_hr_gate.sh" $FORWARD_ARGS ;;
+    1) exec bash "$SCRIPT_DIR/setup_local_hr_only.sh" "${FORWARD_ARGS[@]}" ;;
+    2) exec bash "$SCRIPT_DIR/setup_local_hr_gate.sh" "${FORWARD_ARGS[@]}" ;;
+    3) exec bash "$SCRIPT_DIR/setup_new_dev_hr_gate.sh" "${FORWARD_ARGS[@]}" ;;
   esac
 fi
 
