@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>🪄 DeepClaude + Headroom</h1>
+  <h1>🪄 DeepClaude + Headroom / Gate</h1>
   <p><strong>Automated setup of Headroom AI proxy with DeepClaude for Claude Code via DeepSeek API</strong></p>
   <p>
     <img src="https://img.shields.io/badge/headroom-0.26.1-blue" alt="Headroom">
@@ -10,6 +10,8 @@
 </div>
 
 Run **Claude Code** using the **DeepSeek API** (drastically cheaper) with the **Headroom proxy** (context compression, cache, code-aware, MCP).
+
+> 🔐 **Optional:** pair with [headroomgate](https://github.com/estrazulas/headroomgate) — a hardened fork that adds multi-user API key auth, encrypted provider keys, per-user rate limiting, semantic audit trail, and usage history on top of all upstream compression features. See [how to install](#-headroomgate--auth--audit-recommended-for-teams).
 
 > 💰 DeepSeek V4 Pro: ~$0.44/M input vs Anthropic: ~$3.00/M input  
 > 💰 DeepSeek V4 Pro: ~$0.87/M output vs Anthropic: ~$15.00/M output  
@@ -86,6 +88,7 @@ bash install.sh
 
 The [headroomgate](https://github.com/estrazulas/headroomgate) fork adds multi-user authentication, per-user rate limiting, request audit trail, semantic search, and encrypted provider key storage — on top of all upstream compression features.
 
+**Via installer (recommended):**
 ```bash
 bash install.sh \
   --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
@@ -94,6 +97,14 @@ bash install.sh \
 ```
 
 The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `headroom_auth`). Use `--headroom-auth-release` / `--headroom-auth-sha256` for explicit control.
+
+**Manual install (2 wheels):**
+```bash
+pipx install --force \
+  "https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-cp310-abi3-manylinux_2_35_x86_64.whl[proxy,code,mcp,auth]"
+pipx inject headroom-ai \
+  "https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_auth-0.1.0-py3-none-any.whl"
+```
 
 After install, follow the **bootstrap instructions** printed by the installer to create your admin user, API key, and provider keys.
 
@@ -181,17 +192,26 @@ curl localhost:8787/stats | jq '.summary.compression'  # Savings
 ```
 You (terminal)
        │
-       ├── deepclaude ────────────────────────────────► DeepSeek API
-       │                                                (direct, no proxy)
+       ├── deepclaude ──────────────────────────────────────► DeepSeek API
+       │                                                      (direct, no proxy)
        │
-       └── deepclaudehr ───► Headroom Proxy (:8787) ──► DeepSeek API
-                             │                          (compression + optional auth)
-                             ├── context compression
-                             ├── smart caching
-                             ├── code-aware (AST)
-                             ├── MCP support
-                             ├── HEADROOM_API_KEY auth (headroomgate)
-                             └── audit logging (headroomgate)
+       ├── deepclaudehr ───► Headroom Proxy (:8787) ────────► DeepSeek API
+       │   (standard)        │                                (compression)
+       │                     ├── context compression
+       │                     ├── smart caching
+       │                     ├── code-aware (AST)
+       │                     └── MCP support
+       │
+       └── deepclaudehr ───► Headroom Proxy (:8787) ────────► DeepSeek API
+           (with headroomgate) │                              (compression + auth gateway)
+                               ├── everything above +
+                               ├── 🔐 API key authentication
+                               ├── 👥 user/team management
+                               ├── 🔑 encrypted provider keys
+                               ├── 📋 audit trail (Neo4j)
+                               ├── 🔍 semantic search (Qdrant)
+                               ├── ⏱️ per-user rate limiting
+                               └── 📊 usage history
 ```
 
 ---
