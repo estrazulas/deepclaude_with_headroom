@@ -142,7 +142,7 @@ health_check() {
   fi
 
   local attempts=0 health=""
-  while [ $attempts -lt 10 ]; do
+  while [ $attempts -lt 30 ]; do
     health=$(curl -sf http://localhost:8787/health 2>/dev/null || echo "")
     [ -n "$health" ] && break
     sleep 1
