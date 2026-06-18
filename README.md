@@ -223,8 +223,19 @@ You (terminal)
 | `DEEPSEEK_API_KEY` | `sk-...` | ✅ |
 | `OPENROUTER_API_KEY` | `sk-...` | For OpenRouter |
 | `FIREWORKS_API_KEY` | `...` | For Fireworks |
-| `HEADROOM_API_KEY` | `hr_...` | headroomgate auth (set by `deepclaudehr`) |
-| `HEADROOM_ENCRYPTION_KEY` | `...` | headroomgate encryption (in `~/.config/headroom/env`) |
+| `HEADROOM_API_KEY` | `hr_...` | headroomgate auth — sourced by `deepclaudehr` from `~/.config/headroom/env` |
+| `HEADROOM_ENCRYPTION_KEY` | `...` | headroomgate encryption — stored in `~/.config/headroom/env` |
+
+**Headroomgate config file** (`~/.config/headroom/env`):
+
+The installer creates this template on fork install. `deepclaudehr` sources it at runtime. After running the auth bootstrap (`headroom auth init-db`, `create-user`, `create-key`, `generate-key`), the placeholders are replaced with real keys:
+
+```bash
+HEADROOM_API_KEY="hr_your_generated_key"
+HEADROOM_ENCRYPTION_KEY="your_generated_encryption_key"
+```
+
+No provider keys are stored here — they live encrypted in Neo4j, decrypted on-the-fly by the auth middleware.
 
 Set automatically by deepclaude:
 
