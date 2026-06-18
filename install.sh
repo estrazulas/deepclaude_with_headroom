@@ -549,14 +549,28 @@ if command -v headroom &>/dev/null; then
     sleep 1
     ATTEMPTS=$((ATTEMPTS + 1))
   done
-  if [ -n "$HEALTH" ]; then
-    STATUS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
-    echo "✓ Headroom proxy: $STATUS (localhost:8787)"
-  else
-    echo "⚠️  Proxy não respondeu após ${ATTEMPTS}s. Verificar:"
-    echo "   systemctl --user status headroom.service"
-    echo "   journalctl --user -u headroom.service -n 20"
-  fi
+          if [ -n "$HEALTH" ]; then
+            STATUS=$(echo "$HEALTH" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
+            echo "✓ Headroom proxy: $STATUS (localhost:8787)"
+          elif $HEADROOM_FORK; then
+            echo "  ⚠️  Proxy ainda não subiu — esperado no headroomgate."
+            echo "      O auth plugin bloqueia o startup até que a encryption key"
+            echo "      seja configurada (placeholder inválido). Complete o bootstrap:"
+            echo ""
+            echo "      export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
+            echo "      headroom auth init-db"
+            echo "      headroom auth create-user admin --role admin --team admin"
+            echo "      headroom auth create-key admin"
+            echo "      headroom auth generate-key"
+            echo "      headroom auth set-provider-key admin anthropic"
+            echo ""
+            echo "      Edite ~/.config/headroom/env e reinicie:"
+            echo "      systemctl --user restart headroom.service"
+          else
+            echo "⚠️  Proxy não respondeu após ${ATTEMPTS}s. Verificar:"
+            echo "   systemctl --user status headroom.service"
+            echo "   journalctl --user -u headroom.service -n 20"
+          fi
 else
   echo "⚠️  Headroom CLI não encontrado no PATH."
 fi
