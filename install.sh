@@ -13,7 +13,7 @@ set -euo pipefail
 DRY_RUN=false
 FULL=false
 HEADROOM_RELEASE=""  # vazio = instala do PyPI oficial; senão, URL do .whl
-HEADROOM_VERSION="0.26.0.1"  # versão pinada que sabemos que funciona
+HEADROOM_VERSION="0.25.0"  # versão pinada do upstream (PyPI), ignorada com --headroom-release
 HEADROOM_SHA256=""  # hash esperado do .whl (opcional, recomendado com --headroom-release)
 HEADROOM_FORK=false  # detectado automaticamente se o release é headroomgate
 HEADROOM_AUTH_RELEASE=""  # URL do plugin auth (headroomgate)
