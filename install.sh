@@ -175,10 +175,12 @@ if [ -n "$HEADROOM_RELEASE" ]; then
   # --- Detect headroomgate fork ---
   if echo "$HEADROOM_RELEASE" | grep -qi "headroomgate"; then
     HEADROOM_FORK=true
+    # Inclui dependências do auth (neo4j, cryptography, etc.)
+    [ "$EXTRAS" != "all" ] && EXTRAS="${EXTRAS},auth"
     echo "  🔐 Release com auth detectado (headroomgate)"
     # Auto-derivar URL do plugin auth se não fornecida explicitamente
     if [ -z "$HEADROOM_AUTH_RELEASE" ]; then
-      HEADROOM_AUTH_RELEASE=$(echo "$HEADROOM_RELEASE" | sed 's/headroom_ai/headroom_auth/')
+      HEADROOM_AUTH_RELEASE=$(echo "$HEADROOM_RELEASE" | sed 's|/headroom_ai-[^/]*$|/headroom_auth-0.1.0-py3-none-any.whl|')
       echo "  → Plugin auth: $(basename "$HEADROOM_AUTH_RELEASE")"
     fi
   else
@@ -428,15 +430,29 @@ fi
 if grep -qE '^export DEEPSEEK_API_KEY=' "$SHELL_RC" 2>/dev/null; then
   echo "✓ DEEPSEEK_API_KEY já configurada em $SHELL_RC"
 else
-  echo "  DeepSeek API Key é necessária para o proxy se comunicar com a DeepSeek."
+  if $HEADROOM_FORK; then
+    echo "  DeepSeek API Key (opcional no headroomgate — a chave do provider"
+    echo "  fica armazenada criptografada no Neo4j, injetada pelo auth middleware)."
+    echo "  A chave aqui é usada apenas pelo comando 'deepclaude' (modo direto, sem proxy)."
+  else
+    echo "  DeepSeek API Key é necessária para o proxy se comunicar com a DeepSeek."
+  fi
   echo "  Cadastre-se em: https://platform.deepseek.com"
   echo ""
   if $DRY_RUN; then
     echo "[dry-run] Perguntaria: digite sua API Key"
   else
+    if $HEADROOM_FORK; then
+    read -r -p "  Digite sua DeepSeek API Key (opcional — enter para pular): " USER_KEY </dev/tty
+  else
     read -r -p "  Digite sua DeepSeek API Key (sk-...): " USER_KEY </dev/tty
+  fi
     USER_KEY="${USER_KEY:-}"
     if [ -z "$USER_KEY" ]; then
+      if $HEADROOM_FORK; then
+        echo "  ✓ Chave pulada. O deepclaudehr usa HEADROOM_API_KEY (auth do proxy)."
+        echo "    O deepclaude (direto, sem proxy) precisará da chave depois."
+      else
       echo "  ⚠️  Nenhuma chave. Configure depois:"
       echo "     echo 'export DEEPSEEK_API_KEY=\"sk-...\"' >> $SHELL_RC"
     else
