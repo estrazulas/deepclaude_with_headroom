@@ -17,7 +17,7 @@ if [ -f "$HEADROOM_ENV" ]; then
   source "$HEADROOM_ENV"
 fi
 
-export ANTHROPIC_BASE_URL="http://localhost:8787"
+export ANTHROPIC_BASE_URL="${HEADROOM_PROXY_URL:-http://localhost:8787}"
 
 # If HEADROOM_API_KEY is set, use it for proxy auth (headroomgate mode).
 # Otherwise pass the DeepSeek key directly (original headroom, no auth).
