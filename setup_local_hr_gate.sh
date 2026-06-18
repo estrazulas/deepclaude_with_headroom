@@ -272,6 +272,7 @@ if [ -f "$SCRIPT_DIR/files/deepclaude/headroom.service" ]; then
     cp "$SCRIPT_DIR/files/deepclaude/headroom.service" "$SYSTEMD_USER_DIR/headroom.service"
     sed -i 's| __HEADROOM_EXTRA_ARGS__| --proxy-extension headroom-auth --log-messages|' "$SYSTEMD_USER_DIR/headroom.service"
     sed -i 's|__HEADROOM_ENVIRONMENT_FILE__|EnvironmentFile=%h/.config/headroom/env|' "$SYSTEMD_USER_DIR/headroom.service"
+    sed -i 's|HEADROOM_HOST=127.0.0.1|HEADROOM_HOST=0.0.0.0|' "$SYSTEMD_USER_DIR/headroom.service"
     systemctl --user daemon-reload
     systemctl --user enable headroom.service
     if command -v headroom &>/dev/null; then
