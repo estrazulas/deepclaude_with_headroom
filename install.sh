@@ -325,7 +325,7 @@ if $HEADROOM_FORK && ! $DRY_RUN; then
   NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
   QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
 
-  if [ ! -f "$HEADROOM_CONFIG_FILE" ]; then
+  _write_config() {
     cat > "$HEADROOM_CONFIG_FILE" << INNER
 # Headroom Auth Configuration (instalado por deepclaude_with_headroom)
 # Este arquivo é lido por headroom.service e deepclaudehr.
@@ -340,25 +340,23 @@ if $HEADROOM_FORK && ! $DRY_RUN; then
 HEADROOM_API_KEY="YOUR_HEADROOM_API_KEY_HERE"
 HEADROOM_ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
 
-# --- Database (preenchido automaticamente se já estava no ambiente) ---
+# --- Database ---
 NEO4J_URI="${NEO4J_URI}"
 NEO4J_USER="${NEO4J_USER}"
 NEO4J_PASSWORD="${NEO4J_PASSWORD}"
 QDRANT_URL="${QDRANT_URL}"
 INNER
     chmod 600 "$HEADROOM_CONFIG_FILE"
-    echo "✓ $HEADROOM_CONFIG_FILE (template criado)"
-    if [ "$NEO4J_URI" != "bolt://localhost:7687" ] || [ "$QDRANT_URL" != "http://localhost:6333" ]; then
-      echo "  ℹ️  Neo4j/Qdrant detectados do ambiente e incluídos no config"
-    fi
-  else
-    echo "✓ $HEADROOM_CONFIG_FILE já existe (preservado)"
-  fi
+  }
 
-  # --- Check if DB is already reachable ---
-  _neo4j_ok=false
-  if command -v python3 &>/dev/null; then
-    if python3 -c "
+  # Write initial config
+  _write_config
+  echo "✓ $HEADROOM_CONFIG_FILE criado"
+
+  # Try to connect to Neo4j
+  _try_connect() {
+    if command -v python3 &>/dev/null; then
+      if python3 -c "
 from neo4j import GraphDatabase
 try:
     d = GraphDatabase.driver('$NEO4J_URI', auth=('$NEO4J_USER', '$NEO4J_PASSWORD'))
@@ -366,32 +364,43 @@ try:
     print('OK')
 except: pass
 " 2>/dev/null | grep -q OK; then
-      _neo4j_ok=true
+        return 0
+      fi
     fi
-  fi
+    return 1
+  }
 
-  if $_neo4j_ok; then
+  _ask_db_credentials() {
+    echo ""
+    echo "  🗄️  Neo4j não está acessível em $NEO4J_URI (user: $NEO4J_USER)."
+    echo "      Informe os dados de conexão (Enter = manter valor atual):"
+    echo "      Formato: bolt://host:7687  |  http://host:6333 (Qdrant)"
+    echo ""
+    read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty
+    NEO4J_URI="${input:-$NEO4J_URI}"
+    read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty
+    NEO4J_USER="${input:-$NEO4J_USER}"
+    read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty
+    NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
+    read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty
+    QDRANT_URL="${input:-$QDRANT_URL}"
+    # Rewrite config with new values
+    _write_config
+  }
+
+  # Try connection, ask if fails, retry once
+  if _try_connect; then
     echo "  ✓ Neo4j conectado ($NEO4J_URI) — pronto para bootstrap"
   else
-    echo ""
-    echo "  🗄️  Neo4j não está acessível em $NEO4J_URI."
-    echo "      Configure com Docker ou aponte para uma instância existente."
-    echo ""
-    if [ "$NEO4J_URI" = "bolt://localhost:7687" ]; then
-      read -r -p "  Subir Neo4j+Qdrant com Docker agora? [S/n]: " setup_db </dev/tty
-      setup_db="${setup_db:-S}"
-      if [[ "$setup_db" =~ ^[SsYy] ]]; then
-        echo ""
-        echo "  Certifique-se de ter o Docker instalado."
-        echo "  Clone o repositório headroomgate e suba os containers:"
-        echo "    git clone https://github.com/estrazulas/headroomgate.git /tmp/headroomgate"
-        echo "    cd /tmp/headroomgate && docker compose up -d neo4j qdrant"
-        echo "  Aguarde ~10s para o Neo4j inicializar."
-        echo ""
-      fi
+    _ask_db_credentials
+    if _try_connect; then
+      echo "  ✓ Neo4j conectado ($NEO4J_URI) — pronto para bootstrap"
     else
-      echo "  Verifique se $NEO4J_URI está correto e acessível."
-      echo "  Edite: $HEADROOM_CONFIG_FILE"
+      echo ""
+      echo "  ⚠️  Ainda não foi possível conectar em $NEO4J_URI."
+      echo "      O proxy não subirá com auth até que o Neo4j esteja acessível."
+      echo "      Edite a config depois: $HEADROOM_CONFIG_FILE"
+      echo "      E reinicie: systemctl --user restart headroom.service"
     fi
   fi
 
@@ -399,8 +408,10 @@ elif $HEADROOM_FORK && $DRY_RUN; then
   echo ""
   echo "━━━ 2b. Configuração Auth (headroomgate) ━━━"
   echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE (template com Neo4j/Qdrant)"
-  if [ -n "${NEO4J_URI:-}" ]; then
-    echo "[dry-run] Neo4j detectado no ambiente: $NEO4J_URI — incluído no config"
+  if [ -n "${NEO4J_URI:-}" ] && [ "$NEO4J_URI" != "bolt://localhost:7687" ]; then
+    echo "[dry-run] Neo4j detectado no ambiente: $NEO4J_URI"
+  else
+    echo "[dry-run] Neo4j não detectado — perguntaria credenciais interativamente"
   fi
 fi
 
