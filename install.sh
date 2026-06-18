@@ -318,8 +318,15 @@ if $HEADROOM_FORK && ! $DRY_RUN; then
   echo ""
   echo "━━━ 2b. Configuração Auth (headroomgate) ━━━"
   mkdir -p "$HEADROOM_CONFIG_DIR"
+
+  # Detect existing Neo4j/Qdrant env vars
+  NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
+  NEO4J_USER="${NEO4J_USER:-neo4j}"
+  NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+  QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
+
   if [ ! -f "$HEADROOM_CONFIG_FILE" ]; then
-    cat > "$HEADROOM_CONFIG_FILE" << 'INNER'
+    cat > "$HEADROOM_CONFIG_FILE" << INNER
 # Headroom Auth Configuration (instalado por deepclaude_with_headroom)
 # Este arquivo é lido por headroom.service e deepclaudehr.
 #
@@ -332,37 +339,69 @@ if $HEADROOM_FORK && ! $DRY_RUN; then
 # --- Placeholders (substitua pelos valores reais) ---
 HEADROOM_API_KEY="YOUR_HEADROOM_API_KEY_HERE"
 HEADROOM_ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
+
+# --- Database (preenchido automaticamente se já estava no ambiente) ---
+NEO4J_URI="${NEO4J_URI}"
+NEO4J_USER="${NEO4J_USER}"
+NEO4J_PASSWORD="${NEO4J_PASSWORD}"
+QDRANT_URL="${QDRANT_URL}"
 INNER
     chmod 600 "$HEADROOM_CONFIG_FILE"
     echo "✓ $HEADROOM_CONFIG_FILE (template criado)"
+    if [ "$NEO4J_URI" != "bolt://localhost:7687" ] || [ "$QDRANT_URL" != "http://localhost:6333" ]; then
+      echo "  ℹ️  Neo4j/Qdrant detectados do ambiente e incluídos no config"
+    fi
   else
     echo "✓ $HEADROOM_CONFIG_FILE já existe (preservado)"
   fi
 
-  # --- Optional: Neo4j + Qdrant setup ---
-  echo ""
-  echo "  🗄️  O headroomgate precisa de Neo4j + Qdrant para auth e auditoria."
-  echo "      Se ainda não tem, configure agora ou depois manualmente."
-  echo ""
-  read -r -p "  Configurar Neo4j + Qdrant com Docker? [S/n]: " setup_db </dev/tty
-  setup_db="${setup_db:-S}"
-  if [[ "$setup_db" =~ ^[SsYy] ]]; then
-    echo ""
-    echo "  Certifique-se de ter o Docker instalado."
-    echo "  Clone o repositório headroomgate e suba os containers:"
-    echo ""
-    echo "    git clone https://github.com/estrazulas/headroomgate.git /tmp/headroomgate"
-    echo "    cd /tmp/headroomgate && docker compose up -d neo4j qdrant"
-    echo ""
-    echo "  Aguarde ~10s para o Neo4j inicializar e continue com o bootstrap."
-  else
-    echo "  (pulado — configure Neo4j + Qdrant manualmente depois)"
+  # --- Check if DB is already reachable ---
+  _neo4j_ok=false
+  if command -v python3 &>/dev/null; then
+    if python3 -c "
+from neo4j import GraphDatabase
+try:
+    d = GraphDatabase.driver('$NEO4J_URI', auth=('$NEO4J_USER', '$NEO4J_PASSWORD'))
+    d.verify_connectivity()
+    print('OK')
+except: pass
+" 2>/dev/null | grep -q OK; then
+      _neo4j_ok=true
+    fi
   fi
+
+  if $_neo4j_ok; then
+    echo "  ✓ Neo4j conectado ($NEO4J_URI) — pronto para bootstrap"
+  else
+    echo ""
+    echo "  🗄️  Neo4j não está acessível em $NEO4J_URI."
+    echo "      Configure com Docker ou aponte para uma instância existente."
+    echo ""
+    if [ "$NEO4J_URI" = "bolt://localhost:7687" ]; then
+      read -r -p "  Subir Neo4j+Qdrant com Docker agora? [S/n]: " setup_db </dev/tty
+      setup_db="${setup_db:-S}"
+      if [[ "$setup_db" =~ ^[SsYy] ]]; then
+        echo ""
+        echo "  Certifique-se de ter o Docker instalado."
+        echo "  Clone o repositório headroomgate e suba os containers:"
+        echo "    git clone https://github.com/estrazulas/headroomgate.git /tmp/headroomgate"
+        echo "    cd /tmp/headroomgate && docker compose up -d neo4j qdrant"
+        echo "  Aguarde ~10s para o Neo4j inicializar."
+        echo ""
+      fi
+    else
+      echo "  Verifique se $NEO4J_URI está correto e acessível."
+      echo "  Edite: $HEADROOM_CONFIG_FILE"
+    fi
+  fi
+
 elif $HEADROOM_FORK && $DRY_RUN; then
   echo ""
   echo "━━━ 2b. Configuração Auth (headroomgate) ━━━"
-  echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE (template)"
-  echo "[dry-run] Perguntaria sobre Neo4j + Qdrant"
+  echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE (template com Neo4j/Qdrant)"
+  if [ -n "${NEO4J_URI:-}" ]; then
+    echo "[dry-run] Neo4j detectado no ambiente: $NEO4J_URI — incluído no config"
+  fi
 fi
 
 # ═══════════════════════════════════════════
