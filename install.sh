@@ -355,14 +355,22 @@ INNER
 
   # Try to connect to Neo4j
   _try_connect() {
-    if command -v python3 &>/dev/null; then
-      if python3 -c "
-from neo4j import GraphDatabase
+    # Use pipx venv Python (has neo4j installed) or fall back to system
+    local py=""
+    if [ -x "$HOME/.local/share/pipx/venvs/headroom-ai/bin/python" ]; then
+      py="$HOME/.local/share/pipx/venvs/headroom-ai/bin/python"
+    elif command -v python3 &>/dev/null; then
+      py="python3"
+    fi
+    if [ -n "$py" ]; then
+      if $py -c "
 try:
+    from neo4j import GraphDatabase
     d = GraphDatabase.driver('$NEO4J_URI', auth=('$NEO4J_USER', '$NEO4J_PASSWORD'))
     d.verify_connectivity()
     print('OK')
-except: pass
+except:
+    pass
 " 2>/dev/null | grep -q OK; then
         return 0
       fi
