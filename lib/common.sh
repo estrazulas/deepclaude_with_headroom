@@ -155,8 +155,12 @@ health_check() {
     echo "✓ Headroom proxy: $status (localhost:8787)"
   elif $is_fork; then
     echo "  ⚠️  Proxy not up yet — expected for headroomgate."
-    echo "      Complete the bootstrap (headroom auth init-db, create-user, etc.)"
-    echo "      and restart: systemctl --user restart headroom.service"
+    echo ""
+    echo "  🔍 Diagnostics:"
+    echo "    systemctl --user status headroom.service"
+    echo "    journalctl --user -u headroom.service -n 30 --no-pager"
+    echo "    headroom auth list-users 2>/dev/null || echo 'Neo4j unreachable?'"
+    echo "    ls -la ~/.config/headroom/env"
   else
     echo "⚠️  Proxy did not respond after ${attempts}s. Check:"
     echo "   systemctl --user status headroom.service"

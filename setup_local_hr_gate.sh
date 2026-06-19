@@ -103,10 +103,48 @@ fi
 echo ""
 echo "━━━ 2b. Auth Config: Neo4j + Encryption ━━━"
 
-NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
-NEO4J_USER="${NEO4J_USER:-neo4j}"
-NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
-QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
+export NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
+export NEO4J_USER="${NEO4J_USER:-neo4j}"
+export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+export QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
+
+# Offer to store the Anthropic provider key in Neo4j (requires NEO4J_* env vars)
+_configure_provider_key() {
+  echo ""
+  echo "  🔑 Store your Anthropic API key in Neo4j so the proxy can use it."
+  echo "  (Skip if you don't have it yet — you can run this later manually.)"
+  read -r -p "  Store Anthropic provider key now? [Y/n]: " store_key </dev/tty
+  store_key="${store_key:-S}"
+  if [[ "$store_key" =~ ^[SsYy] ]]; then
+    if headroom auth set-provider-key admin anthropic; then
+      PROVIDER_KEY_SET=true
+      echo "  ✓ Provider key stored for role 'admin' (provider: anthropic)"
+    else
+      echo "  ⚠️  Failed to store provider key. Run manually later:"
+      echo "      headroom auth set-provider-key admin anthropic"
+    fi
+  else
+    echo "  (Skipped. Run later: headroom auth set-provider-key admin anthropic)"
+  fi
+}
+
+# Auto-generate encryption key if missing (env → config file → generate)
+if ! $DRY_RUN && command -v headroom &>/dev/null; then
+  if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ] && [ -f "$HEADROOM_CONFIG_FILE" ]; then
+    source "$HEADROOM_CONFIG_FILE" 2>/dev/null || true
+  fi
+  if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ]; then
+    echo ""
+    echo "  🔑 No HEADROOM_ENCRYPTION_KEY found. Generating a new one..."
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | { IFS= read -r key; echo "$key"; cat >/dev/null; })
+    if [ -n "$ENCRYPTION_KEY" ]; then
+      export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+      echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
+    fi
+  else
+    ENCRYPTION_KEY="$HEADROOM_ENCRYPTION_KEY"
+  fi
+fi
 
 _write_config() {
   mkdir -p "$HEADROOM_CONFIG_DIR"
@@ -156,6 +194,54 @@ _db_has_users() {
   return 1
 }
 
+# Offer to start Neo4j + Qdrant via docker compose
+_start_services() {
+  if ! docker info &>/dev/null; then
+    return 1
+  fi
+  local compose_file="$SCRIPT_DIR/docker-compose.yml"
+  if [ ! -f "$compose_file" ]; then
+    return 1
+  fi
+  echo ""
+  echo "  🐳 Docker detected. I can start Neo4j + Qdrant for you."
+  read -r -p "  Start containers now? [Y/n]: " start_svc </dev/tty
+  start_svc="${start_svc:-S}"
+  if [[ ! "$start_svc" =~ ^[SsYy] ]]; then
+    return 1
+  fi
+  echo "  Starting Neo4j + Qdrant..."
+  docker compose -f "$compose_file" up -d 2>&1 | sed 's/^/  /'
+  echo "  Waiting for Neo4j (max 30s)..."
+  local waited=0
+  while [ $waited -lt 30 ]; do
+    if _try_connect; then
+      echo "  ✓ Neo4j ready (${waited}s)"
+      return 0
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  echo "  ⚠️  Neo4j not ready after 30s"
+  return 1
+}
+
+# Ensure encryption key is set — generate if still a placeholder
+_ensure_encryption_key() {
+  if [[ "$ENCRYPTION_KEY" == "YOUR_ENCRYPTION_KEY_HERE" || -z "$ENCRYPTION_KEY" ]]; then
+    echo ""
+    echo "  🔑 Encryption key not set. Generating a new one..."
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | { IFS= read -r key; echo "$key"; cat >/dev/null; })
+    if [ -n "$ENCRYPTION_KEY" ]; then
+      export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+      echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
+    else
+      echo "  ⚠️  Could not generate encryption key. Run manually: headroom auth generate-key"
+      ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
+    fi
+  fi
+}
+
 if $DRY_RUN; then
   echo "[dry-run] Would ask: already have Neo4j + encryption key?"
   echo "[dry-run] If yes: ask for existing credentials and keys"
@@ -181,7 +267,9 @@ else
     read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
     read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
     echo ""
-    read -r -p "  HEADROOM_ENCRYPTION_KEY: " ENCRYPTION_KEY </dev/tty
+    read -r -p "  HEADROOM_ENCRYPTION_KEY [$ENCRYPTION_KEY]: " input </dev/tty
+    ENCRYPTION_KEY="${input:-$ENCRYPTION_KEY}"
+    export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
     read -r -p "  HEADROOM_API_KEY (hr_..., Enter if none): " input </dev/tty
     [ -n "$input" ] && API_KEY="$input"
 
@@ -203,9 +291,9 @@ else
       echo "    - init-db (constraints + roles)"
       echo "    - create-user admin --role admin"
       echo "    - create-key admin (generates API key)"
-      echo "    - generate-key (encryption key)"
       echo "    - Write everything to $HEADROOM_CONFIG_FILE"
       echo ""
+      echo "  (Bootstrap = create database schema, admin user, and API key)"
       read -r -p "  Run auto bootstrap? [Y/n]: " do_bootstrap </dev/tty
       do_bootstrap="${do_bootstrap:-S}"
 
@@ -214,39 +302,47 @@ else
         headroom auth init-db -y 2>&1 | sed 's/^/  /'
         headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
         API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-        ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+        _ensure_encryption_key
         _write_config
         echo ""
         echo "  ✓ Bootstrap complete!"
         echo "  API_KEY:        ${API_KEY}"
         echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+        PROVIDER_KEY_SET=false
+        _configure_provider_key
       else
         _write_config
         echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
       fi
     else
-      # Neo4j not reachable — ask for credentials, try again
-      echo "  🗄️  Neo4j not reachable at $NEO4J_URI."
-      echo ""
-      read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
-      read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
-      read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
-      read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+      # Neo4j not reachable — try docker compose, then manual entry
+      _start_services || {
+        echo ""
+        echo "  🗄️  Enter Neo4j connection details manually:"
+        echo ""
+        read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
+        read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
+        read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
+        read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+      }
 
       if _try_connect; then
         echo "  ✓ Neo4j connected!"
         echo ""
+        echo "  (Bootstrap = create database schema, admin user, and API key)"
         read -r -p "  Run bootstrap now? [Y/n]: " do_bootstrap </dev/tty
         do_bootstrap="${do_bootstrap:-S}"
         if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
           headroom auth init-db -y 2>&1 | sed 's/^/  /'
           headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
           API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-          ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+          _ensure_encryption_key
           _write_config
           echo "  ✓ Bootstrap complete!"
           echo "  API_KEY:        ${API_KEY}"
           echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+          PROVIDER_KEY_SET=false
+          _configure_provider_key
         else
           _write_config
           echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
@@ -307,17 +403,37 @@ echo ""
 echo "  Proxy:  systemctl --user status headroom.service"
 echo "  Health: curl localhost:8787/health"
 echo ""
-echo "  🛡️  BOOTSTRAP AUTH:"
-echo "  ════════════════════════════════════"
-echo "  export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
-echo "  headroom auth init-db"
-echo "  headroom auth create-user admin --role admin --team admin"
-echo "  headroom auth create-key admin           ← save the hr_..."
-echo "  headroom auth generate-key               ← save the key"
-echo "  headroom auth set-provider-key admin anthropic"
-echo ""
-echo "  Edit ~/.config/headroom/env with the keys and restart:"
-echo "  systemctl --user restart headroom.service"
+  # Check if bootstrap was completed or needs manual steps
+  if [ -f "$HEADROOM_CONFIG_FILE" ] && grep -q 'hr_[a-f0-9]\{64\}' "$HEADROOM_CONFIG_FILE" 2>/dev/null; then
+    echo "  🛡️  Auth bootstrap: DONE"
+    echo "  ════════════════════════════════════"
+    echo "  API key and encryption key are in $HEADROOM_CONFIG_FILE"
+    if ${PROVIDER_KEY_SET:-false}; then
+      echo "  🔑 Provider key: DONE"
+      echo ""
+      echo "  The proxy is ready. Restart if you haven't already:"
+      echo "    systemctl --user restart headroom.service"
+    else
+      echo ""
+      echo "  Next: store your provider key and restart the proxy:"
+      echo "    headroom auth set-provider-key admin anthropic"
+      echo "    systemctl --user restart headroom.service"
+    fi
+  else
+    echo "  🛡️  Auth bootstrap: PENDING"
+    echo "  ════════════════════════════════════"
+    echo "  The proxy needs an admin user + API key. Run:"
+    echo ""
+    echo "  export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
+    echo "  headroom auth init-db -y"
+    echo "  headroom auth create-user admin --role admin --team admin"
+    echo "  headroom auth create-key admin           ← save the hr_..."
+    echo "  headroom auth generate-key               ← save the key"
+    echo "  headroom auth set-provider-key admin anthropic"
+    echo ""
+    echo "  Then edit $HEADROOM_CONFIG_FILE with the keys and:"
+    echo "  systemctl --user restart headroom.service"
+  fi
 echo ""
 echo "  Commands:"
 echo "    deepclaude       → Claude Code via DeepSeek (direct)"
