@@ -29,6 +29,52 @@ check_prerequisites() {
   fi
 }
 
+# ---- check CPU features required by Docker containers -----------------------
+# Neo4j 5.x and Qdrant need AVX (and AVX2 for optimal vector ops).
+# VMs often mask these unless the CPU type is set to "host".
+check_cpu_features() {
+  local missing=""
+  local cpuinfo="/proc/cpuinfo"
+
+  if [ ! -f "$cpuinfo" ]; then
+    echo "  ⚠️  Cannot read $cpuinfo — skipping CPU feature check."
+    return 0
+  fi
+
+  for flag in avx avx2; do
+    if ! grep -qw "$flag" "$cpuinfo"; then
+      missing="$missing $flag"
+    fi
+  done
+
+  if [ -n "$missing" ]; then
+    echo ""
+    echo "  ❌ Missing CPU instruction(s):$missing"
+    echo ""
+    echo "  The headroom proxy binary requires AVX + AVX2 to run."
+    echo "  These instructions aren't available on your CPU (or the VM is masking them)."
+    echo ""
+    echo "  Common fixes:"
+    echo "  • Proxmox  → Set CPU type to 'host' in the VM config"
+    echo "  • VirtualBox → Settings → System → Processor → 'Enable Nested VT-x/AMD-V'"
+    echo "  • QEMU/KVM → -cpu host (or -cpu qemu64,+avx,+avx2)"
+    echo "  • VMware → VM Settings → Processors → 'Expose hardware assisted virtualization'"
+    echo "  • Bare metal → Your CPU may be too old; headroom won't run without AVX/AVX2"
+    echo ""
+    echo "  If you point NEO4J_URI / QDRANT_URL to external instances, you can ignore this."
+    echo ""
+    if grep -q "hypervisor" "$cpuinfo" 2>/dev/null; then
+      echo "  🔍 Detected: running inside a VM — the hypervisor is masking these flags."
+      echo "     Enable 'host' CPU passthrough in your VM settings."
+      echo ""
+    fi
+    return 1
+  fi
+
+  echo "  ✓ CPU features OK (avx + avx2)"
+  return 0
+}
+
 # ---- install claude code commands -----------------------------------------
 install_claude_commands() {
   local dry="${1:-false}"
