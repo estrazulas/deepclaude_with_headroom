@@ -93,19 +93,18 @@ if ! $any_found; then
 fi
 
 echo ""
-echo "  Enter numbers to REMOVE (space/comma-separated, e.g. '1,3,5')"
-echo "  or 'all' for everything, 'q' to cancel."
+echo "  Enter numbers to KEEP (space/comma-separated, e.g. '2,4')"
+echo "  Everything else will be removed."
+echo "  or 'none' to remove everything, 'all' to keep everything, 'q' to cancel."
 
-# ── Get selection ────────────────────────────────────────────────────
+# ── Get selection (KEEP) ──────────────────────────────────────────────
 
-SELECTED=()
+KEEP=()
 if $YES; then
-  for i in $(seq 1 8); do
-    ${FOUND[$i]} && SELECTED+=("$i")
-  done
+  # --yes: keep nothing, remove all found
   echo "  --yes: removing all found components"
 else
-  read -r -p "  Remove which? " raw </dev/tty
+  read -r -p "  Keep which? " raw </dev/tty
   raw="${raw:-q}"
 
   if [[ "$raw" == "q" ]]; then
@@ -117,27 +116,48 @@ else
   raw=$(echo "$raw" | tr ',' ' ' | xargs)
 
   if [[ "$raw" == "all" ]]; then
-    for i in $(seq 1 8); do
-      ${FOUND[$i]} && SELECTED+=("$i")
-    done
+    echo "  Keeping everything. Nothing to uninstall."
+    exit 0
+  elif [[ "$raw" == "none" ]]; then
+    : # KEEP stays empty — remove all found
   else
     for token in $raw; do
-      if [[ "$token" =~ ^[1-8]$ ]] && ${FOUND[$token]}; then
-        SELECTED+=("$token")
+      if [[ "$token" =~ ^[1-8]$ ]]; then
+        KEEP+=("$token")
       fi
     done
   fi
 fi
 
-if [ ${#SELECTED[@]} -eq 0 ]; then
-  echo "  Nothing selected. Exiting."
+# Compute REMOVE = all found - KEEP
+REMOVE=()
+for i in $(seq 1 8); do
+  if ${FOUND[$i]}; then
+    keep_this=false
+    for k in "${KEEP[@]}"; do
+      [ "$k" == "$i" ] && keep_this=true
+    done
+    if ! $keep_this; then
+      REMOVE+=("$i")
+    fi
+  fi
+done
+
+if [ ${#REMOVE[@]} -eq 0 ]; then
+  echo "  Nothing to remove. Exiting."
   exit 0
 fi
 
 echo ""
-echo "  Will remove:"
-for i in "${SELECTED[@]}"; do
-  echo "    - ${COMPONENTS[$i]}"
+if [ ${#KEEP[@]} -gt 0 ]; then
+  echo "  Keeping:"
+  for i in "${KEEP[@]}"; do
+    echo "    ✓ ${COMPONENTS[$i]}"
+  done
+fi
+echo "  Removing:"
+for i in "${REMOVE[@]}"; do
+  echo "    ✗ ${COMPONENTS[$i]}"
 done
 echo ""
 
@@ -154,8 +174,8 @@ $DRY_RUN && echo "[dry-run] Simulating..." && echo ""
 
 # ── Helper ───────────────────────────────────────────────────────────
 
-_selected() {
-  for s in "${SELECTED[@]}"; do
+_remove() {
+  for s in "${REMOVE[@]}"; do
     [ "$s" == "$1" ] && return 0
   done
   return 1
@@ -173,7 +193,7 @@ _run() {
 
 # ── 1. Headroom Proxy ────────────────────────────────────────────────
 
-if _selected 1 && [ -f "$SYSTEMD_USER_DIR/headroom.service" ]; then
+if _remove 1 && [ -f "$SYSTEMD_USER_DIR/headroom.service" ]; then
   echo "━━━ 1. Headroom Proxy ━━━"
   if $DRY_RUN; then
     echo "[dry-run] systemctl --user stop headroom.service"
@@ -191,7 +211,7 @@ fi
 
 # ── 2. Auth Config ───────────────────────────────────────────────────
 
-if _selected 2; then
+if _remove 2; then
   echo "━━━ 2. Auth Config ━━━"
   if [ -d "$HEADROOM_CONFIG_DIR" ]; then
     _run "$HEADROOM_CONFIG_DIR removed" rm -rf "$HEADROOM_CONFIG_DIR"
@@ -202,7 +222,7 @@ fi
 
 # ── 3. Headroom CLI ──────────────────────────────────────────────────
 
-if _selected 3 && command -v headroom &>/dev/null; then
+if _remove 3 && command -v headroom &>/dev/null; then
   echo "━━━ 3. Headroom CLI ━━━"
   if $DRY_RUN; then
     echo "[dry-run] pipx uninstall headroom-ai"
@@ -222,7 +242,7 @@ fi
 
 # ── 4. DeepClaude ────────────────────────────────────────────────────
 
-if _selected 4; then
+if _remove 4; then
   echo "━━━ 4. DeepClaude Scripts ━━━"
   for bin in /usr/local/bin/deepclaude /usr/local/bin/deepclaudehr; do
     if [ -f "$bin" ]; then
@@ -240,7 +260,7 @@ fi
 
 # ── 5. Claude Code Commands ──────────────────────────────────────────
 
-if _selected 5; then
+if _remove 5; then
   echo "━━━ 5. Claude Code Commands ━━━"
   for f in headroom_usage.md; do
     dst="$COMMANDS_DIR/$f"
@@ -282,7 +302,7 @@ fi
 
 # ── 6. DEEPSEEK_API_KEY ──────────────────────────────────────────────
 
-if _selected 6; then
+if _remove 6; then
   echo "━━━ 6. DEEPSEEK_API_KEY ━━━"
   if grep -qE '# DeepSeek API Key \(headroom installer\)' "$SHELL_RC" 2>/dev/null; then
     if $DRY_RUN; then
@@ -299,7 +319,7 @@ fi
 
 # ── 7. Docker containers + volumes ───────────────────────────────────
 
-if _selected 7; then
+if _remove 7; then
   echo "━━━ 7. Docker (neo4j + qdrant) ━━━"
 
   # Try project compose first, fall back to headroomgate compose
@@ -340,7 +360,7 @@ fi
 
 # ── 8. Cache ─────────────────────────────────────────────────────────
 
-if _selected 8; then
+if _remove 8; then
   echo "━━━ 8. Headroom Cache ━━━"
   for d in "$HOME/.headroom" "$HOME/.cache/headroom"; do
     if [ -d "$d" ]; then
