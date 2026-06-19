@@ -103,10 +103,28 @@ fi
 echo ""
 echo "━━━ 2b. Auth Config: Neo4j + Encryption ━━━"
 
-NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
-NEO4J_USER="${NEO4J_USER:-neo4j}"
-NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
-QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
+export NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
+export NEO4J_USER="${NEO4J_USER:-neo4j}"
+export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+export QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
+
+# Auto-generate encryption key if missing (env → config file → generate)
+if ! $DRY_RUN && command -v headroom &>/dev/null; then
+  if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ] && [ -f "$HEADROOM_CONFIG_FILE" ]; then
+    source "$HEADROOM_CONFIG_FILE" 2>/dev/null || true
+  fi
+  if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ]; then
+    echo ""
+    echo "  🔑 No HEADROOM_ENCRYPTION_KEY found. Generating a new one..."
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | head -1)
+    if [ -n "$ENCRYPTION_KEY" ]; then
+      export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+      echo "  ✓ Encryption key generated"
+    fi
+  else
+    ENCRYPTION_KEY="$HEADROOM_ENCRYPTION_KEY"
+  fi
+fi
 
 _write_config() {
   mkdir -p "$HEADROOM_CONFIG_DIR"
@@ -181,7 +199,9 @@ else
     read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
     read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
     echo ""
-    read -r -p "  HEADROOM_ENCRYPTION_KEY: " ENCRYPTION_KEY </dev/tty
+    read -r -p "  HEADROOM_ENCRYPTION_KEY [$ENCRYPTION_KEY]: " input </dev/tty
+    ENCRYPTION_KEY="${input:-$ENCRYPTION_KEY}"
+    export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
     read -r -p "  HEADROOM_API_KEY (hr_..., Enter if none): " input </dev/tty
     [ -n "$input" ] && API_KEY="$input"
 
@@ -203,7 +223,6 @@ else
       echo "    - init-db (constraints + roles)"
       echo "    - create-user admin --role admin"
       echo "    - create-key admin (generates API key)"
-      echo "    - generate-key (encryption key)"
       echo "    - Write everything to $HEADROOM_CONFIG_FILE"
       echo ""
       read -r -p "  Run auto bootstrap? [Y/n]: " do_bootstrap </dev/tty
@@ -214,7 +233,7 @@ else
         headroom auth init-db -y 2>&1 | sed 's/^/  /'
         headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
         API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-        ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+        export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
         _write_config
         echo ""
         echo "  ✓ Bootstrap complete!"
@@ -242,7 +261,7 @@ else
           headroom auth init-db -y 2>&1 | sed 's/^/  /'
           headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
           API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-          ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
+          export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
           _write_config
           echo "  ✓ Bootstrap complete!"
           echo "  API_KEY:        ${API_KEY}"
