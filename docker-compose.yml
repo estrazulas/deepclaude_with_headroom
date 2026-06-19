@@ -1,0 +1,32 @@
+# HeadroomGate infrastructure — Neo4j (auth store) + Qdrant (semantic search)
+# Start with: docker compose up -d
+# The proxy runs via systemd (headroom.service), not here.
+
+services:
+  neo4j:
+    image: neo4j:5.26
+    ports:
+      - "0.0.0.0:7474:7474"  # HTTP Browser
+      - "0.0.0.0:7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+    environment:
+      - NEO4J_AUTH=${NEO4J_AUTH:-neo4j/devpassword}
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_apoc_export_file_enabled=true
+      - NEO4J_apoc_import_file_enabled=true
+      - NEO4J_apoc_import_file_use__neo4j__config=true
+
+  qdrant:
+    image: qdrant/qdrant:v1.17.1
+    ports:
+      - "0.0.0.0:6333:6333"  # REST API
+      - "0.0.0.0:6334:6334"  # gRPC
+    volumes:
+      - qdrant_data:/qdrant/storage
+    environment:
+      - QDRANT__SERVICE__GRPC_PORT=6334
+
+volumes:
+  neo4j_data:
+  qdrant_data:

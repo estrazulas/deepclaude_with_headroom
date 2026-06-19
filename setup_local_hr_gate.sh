@@ -174,6 +174,38 @@ _db_has_users() {
   return 1
 }
 
+# Offer to start Neo4j + Qdrant via docker compose
+_start_services() {
+  if ! docker info &>/dev/null; then
+    return 1
+  fi
+  local compose_file="$SCRIPT_DIR/docker-compose.yml"
+  if [ ! -f "$compose_file" ]; then
+    return 1
+  fi
+  echo ""
+  echo "  🐳 Docker detected. I can start Neo4j + Qdrant for you."
+  read -r -p "  Start containers now? [Y/n]: " start_svc </dev/tty
+  start_svc="${start_svc:-S}"
+  if [[ ! "$start_svc" =~ ^[SsYy] ]]; then
+    return 1
+  fi
+  echo "  Starting Neo4j + Qdrant..."
+  docker compose -f "$compose_file" up -d 2>&1 | sed 's/^/  /'
+  echo "  Waiting for Neo4j (max 30s)..."
+  local waited=0
+  while [ $waited -lt 30 ]; do
+    if _try_connect; then
+      echo "  ✓ Neo4j ready (${waited}s)"
+      return 0
+    fi
+    sleep 2
+    waited=$((waited + 2))
+  done
+  echo "  ⚠️  Neo4j not ready after 30s"
+  return 1
+}
+
 if $DRY_RUN; then
   echo "[dry-run] Would ask: already have Neo4j + encryption key?"
   echo "[dry-run] If yes: ask for existing credentials and keys"
@@ -244,13 +276,16 @@ else
         echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
       fi
     else
-      # Neo4j not reachable — ask for credentials, try again
-      echo "  🗄️  Neo4j not reachable at $NEO4J_URI."
-      echo ""
-      read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
-      read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
-      read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
-      read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+      # Neo4j not reachable — try docker compose, then manual entry
+      _start_services || {
+        echo ""
+        echo "  🗄️  Enter Neo4j connection details manually:"
+        echo ""
+        read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
+        read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
+        read -r -p "  NEO4J_PASSWORD [$NEO4J_PASSWORD]: " input </dev/tty; NEO4J_PASSWORD="${input:-$NEO4J_PASSWORD}"
+        read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
+      }
 
       if _try_connect; then
         echo "  ✓ Neo4j connected!"
