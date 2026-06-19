@@ -33,6 +33,13 @@ $DRY_RUN && echo "[dry-run] Simulating..." && echo ""
 
 check_prerequisites
 
+# Headroom binary requires AVX/AVX2 — check early before anything else
+if ! $DRY_RUN; then
+  check_cpu_features || exit 1
+else
+  echo "[dry-run] Would check CPU features (avx + avx2)"
+fi
+
 # 1. Claude Code commands
 install_claude_commands "$DRY_RUN" "$SCRIPT_DIR/files"
 add_claude_permissions "$DRY_RUN"
