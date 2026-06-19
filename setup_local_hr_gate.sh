@@ -116,7 +116,7 @@ if ! $DRY_RUN && command -v headroom &>/dev/null; then
   if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ]; then
     echo ""
     echo "  🔑 No HEADROOM_ENCRYPTION_KEY found. Generating a new one..."
-    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | head -1)
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | { IFS= read -r key; echo "$key"; cat >/dev/null; })
     if [ -n "$ENCRYPTION_KEY" ]; then
       export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
       echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
@@ -211,7 +211,7 @@ _ensure_encryption_key() {
   if [[ "$ENCRYPTION_KEY" == "YOUR_ENCRYPTION_KEY_HERE" || -z "$ENCRYPTION_KEY" ]]; then
     echo ""
     echo "  🔑 Encryption key not set. Generating a new one..."
-    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | head -1)
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | { IFS= read -r key; echo "$key"; cat >/dev/null; })
     if [ -n "$ENCRYPTION_KEY" ]; then
       export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
       echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
