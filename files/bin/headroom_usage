@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Helper script for /headroom_usage command
-# Mostra estatísticas de economia do Headroom proxy
+# Display Headroom proxy savings statistics
 
 STATS=$(curl -sf http://localhost:8787/stats 2>/dev/null)
 
 if [ -z "$STATS" ]; then
-  echo "❌ Headroom proxy não está respondendo em localhost:8787"
-  echo "   Verifique com: systemctl --user status headroom.service"
+  echo "❌ Headroom proxy is not responding at localhost:8787"
+  echo "   Check with: systemctl --user status headroom.service"
   exit 1
 fi
 
@@ -26,40 +26,40 @@ if [ "$1" = "-p" ] || [ "$1" = "--prometheus" ]; then
   exit 0
 fi
 
-# Dashboard formatado
+# Formatted dashboard
 echo "╔══════════════════════════════════════╗"
 echo "║   📊 HEADROOM ECONOMY               ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
-# Sessão atual
-echo "━━━ SESSÃO ATUAL ━━━"
+# Current session
+echo "━━━ CURRENT SESSION ━━━"
 echo "$STATS" | jq -r '
   .display_session as $s |
   "  📥 Requests:        \($s.requests) reqs",
   "  📝 Input tokens:    \($s.total_input_tokens | tostring) tok",
-  "  💰 Tokens salvos:   \($s.tokens_saved | tostring) tok  (\($s.savings_percent)% de redução)",
-  "  ⏱  Duração:         \($s.started_at[:16] | sub("T"; " ")) — presente"
+  "  💰 Tokens saved:    \($s.tokens_saved | tostring) tok  (\($s.savings_percent)% reduction)",
+  "  ⏱  Duration:         \($s.started_at[:16] | sub("T"; " ")) — present"
 '
 
 echo ""
-echo "━━━ LIFETIME — DESDE O INÍCIO ━━━"
+echo "━━━ LIFETIME — TOTAL ━━━"
 echo "$STATS" | jq -r '
   .persistent_savings.lifetime as $l |
   "  📥 Requests:        \($l.requests) reqs",
   "  📝 Input tokens:    \($l.total_input_tokens | tostring) tok",
-  "  💰 Tokens salvos:   \($l.tokens_saved | tostring) tok",
-  "  📉 Redução total:   \($l.savings_percent)%"
+  "  💰 Tokens saved:    \($l.tokens_saved | tostring) tok",
+  "  📉 Total reduction:  \($l.savings_percent)%"
 '
 
 echo ""
-echo "━━━ COMPRESSÃO ━━━"
+echo "━━━ COMPRESSION ━━━"
 echo "$STATS" | jq -r '
   .summary.compression as $c |
-  "  🔧 Reqs comprimidas: \($c.requests_compressed) de \(.summary.api_requests) reqs",
-  "  📉 Média compressão: \($c.avg_compression_pct)%",
-  "  🏆 Melhor caso:      \($c.best_compression_pct)%  (\($c.best_detail))",
-  "  🔢 Tokens removidos: \($c.total_tokens_removed | tostring) tok"
+  "  🔧 Reqs compressed:  \($c.requests_compressed) of \(.summary.api_requests) reqs",
+  "  📉 Avg compression:   \($c.avg_compression_pct)%",
+  "  🏆 Best case:         \($c.best_compression_pct)%  (\($c.best_detail))",
+  "  🔢 Tokens removed:    \($c.total_tokens_removed | tostring) tok"
 '
 
 echo ""
@@ -69,7 +69,7 @@ echo "$STATS" | jq -r '
   .prefix_cache.totals as $pc |
   "  💾 Cache hit rate:   \($r.cached / $r.total * 100 | floor)%  (\($r.cached)/\($r.total) reqs)",
   "  📖 Cache read:       \($pc.cache_read_tokens | tostring) tok",
-  "  ❌ Cache busts:      \($pc.bust_count) (0 tok perdidos)"
+  "  ❌ Cache busts:       \($pc.bust_count) (0 tok lost)"
 '
 
 echo ""
@@ -77,34 +77,34 @@ echo "━━━ PERFORMANCE ━━━"
 echo "$STATS" | jq -r '
   .latency as $l |
   .overhead as $o |
-  "  ⏳ Latência média:   \($l.average_ms | floor)ms",
-  "  ⚡ Overhead Headroom: \($o.average_ms | floor)ms (mín \($o.min_ms)ms / máx \($o.max_ms)ms)",
-  "  🚀 TTFB médio:       \(.ttfb.average_ms | floor)ms"
+  "  ⏳ Avg latency:       \($l.average_ms | floor)ms",
+  "  ⚡ Headroom Overhead: \($o.average_ms | floor)ms (min \($o.min_ms)ms / max \($o.max_ms)ms)",
+  "  🚀 Avg TTFB:          \(.ttfb.average_ms | floor)ms"
 '
 
 echo ""
-echo "━━━ MODELOS ━━━"
+echo "━━━ MODELS ━━━"
 echo "$STATS" | jq -r '
   .requests.by_model | to_entries | .[] |
   "  🤖 \(.key): \(.value) reqs"
 '
 
 echo ""
-echo "━━━ RECENTES (últimas requisições) ━━━"
+echo "━━━ RECENT (last requests) ━━━"
 echo "$STATS" | jq -r '
   .recent_requests[-5:] | reverse | .[] |
   "  [\(.timestamp[11:19])] \(.model) | \(.input_tokens_original) → \(.input_tokens_optimized) tok | -\(.tokens_saved) tok (\(.savings_percent | floor)%) | cache=\(.cache_hit)"
-' 2>/dev/null || echo "  (sem dados recentes)"
+' 2>/dev/null || echo "  (no recent data)"
 
 echo ""
 echo "━━━"
 echo "$STATS" | jq -r '
   if .cost.savings_usd != 0 then
-    "💰 Economia em USD: $" + (.cost.savings_usd | tostring)
+    "💰 Savings in USD: $" + (.cost.savings_usd | tostring)
   else
-    "💡 Economia em USD indisponível (preços não configurados no proxy)"
+    "💡 Savings in USD unavailable (prices not configured on proxy)"
   end
 '
 echo ""
-echo "➡️  Use /headroom_usage -v  para JSON completo"
-echo "   Use /headroom_usage -p  para métricas Prometheus"
+echo "➡️  Use /headroom_usage -v  for full JSON"
+echo "   Use /headroom_usage -p  for Prometheus metrics"

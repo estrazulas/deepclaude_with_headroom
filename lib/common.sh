@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# common.sh — funções compartilhadas pelos scripts de setup
-# Source este arquivo nos scripts: source "$(dirname "$0")/lib/common.sh"
+# common.sh — shared functions for setup scripts
+# Source this file in scripts with: source "$(dirname "$0")/lib/common.sh"
 set -euo pipefail
 
 # ---- paths ----------------------------------------------------------------
@@ -23,8 +23,8 @@ banner() {
 # ---- check prerequisites --------------------------------------------------
 check_prerequisites() {
   if [ ! -d "$HOME/.claude" ]; then
-    echo "⚠️  ~/.claude não encontrado. O Claude Code está instalado?"
-    echo "   Execute 'claude' ao menos uma vez para criar o diretório."
+    echo "⚠️  ~/.claude not found. Is Claude Code installed?"
+    echo "   Run 'claude' at least once to create the directory."
     exit 1
   fi
 }
@@ -34,13 +34,13 @@ install_claude_commands() {
   local dry="${1:-false}"
   local src_dir="${2:-files}"
 
-  echo "━━━ Instalando comandos Claude Code ━━━"
+  echo "━━━ Installing Claude Code commands ━━━"
   mkdir -p "$BIN_DIR"
 
-  for f in mem.md headroom_usage.md; do
+  for f in headroom_usage.md; do
     local src="$src_dir/$f"
     local dst="$COMMANDS_DIR/$f"
-    [ ! -f "$src" ] && echo "⚠️  $src não encontrado — pulando" && continue
+    [ ! -f "$src" ] && echo "⚠️  $src not found — skipping" && continue
     if $dry; then
       echo "[dry-run] $dst"
     else
@@ -50,10 +50,10 @@ install_claude_commands() {
     fi
   done
 
-  for f in bin/mem bin/headroom_usage; do
+  for f in bin/headroom_usage; do
     local src="$src_dir/$f"
     local dst="$BIN_DIR/$(basename "$f")"
-    [ ! -f "$src" ] && echo "⚠️  $src não encontrado — pulando" && continue
+    [ ! -f "$src" ] && echo "⚠️  $src not found — skipping" && continue
     if $dry; then
       echo "[dry-run] $dst (+x)"
     else
@@ -70,7 +70,7 @@ add_claude_permissions() {
   $dry && return
 
   [ ! -f "$SETTINGS" ] && echo '{}' > "$SETTINGS"
-  for script_path in "$BIN_DIR/mem" "$BIN_DIR/headroom_usage"; do
+  for script_path in "$BIN_DIR/headroom_usage"; do
     for entry in "Bash($script_path *)" "Bash(!$script_path *)"; do
       if ! grep -qF "$entry" "$SETTINGS" 2>/dev/null; then
         python3 -c "
@@ -84,7 +84,7 @@ if e not in cfg['permissions']['allow']:
 with open('$SETTINGS', 'w') as f:
     json.dump(cfg, f, indent=2)
     f.write('\n')
-print('✓ Permissão:', e)
+print('✓ Permission:', e)
 "
       fi
     done
@@ -97,12 +97,12 @@ install_deepclaude_commands() {
   local dc_src="${2:-files/deepclaude}"
 
   echo ""
-  echo "━━━ Instalando DeepClaude ━━━"
+  echo "━━━ Installing DeepClaude ━━━"
 
   if [ -f "$dc_src/deepclaude.sh" ]; then
     if $dry; then
-      echo "[dry-run] Instalaria: /usr/local/bin/deepclaude (+x)"
-      echo "[dry-run] Instalaria: /usr/local/bin/deepclaudehr (+x)"
+      echo "[dry-run] Would install: /usr/local/bin/deepclaude (+x)"
+      echo "[dry-run] Would install: /usr/local/bin/deepclaudehr (+x)"
     else
       sudo cp "$dc_src/deepclaude.sh" /usr/local/bin/deepclaude
       sudo cp "$dc_src/deepclaudehr.sh" /usr/local/bin/deepclaudehr
@@ -111,7 +111,7 @@ install_deepclaude_commands() {
       echo "✓ /usr/local/bin/deepclaudehr"
     fi
   else
-    echo "⚠️  Scripts deepclaude não encontrados em $dc_src — pulando"
+    echo "⚠️  DeepClaude scripts not found at $dc_src — skipping"
   fi
 }
 
@@ -137,7 +137,7 @@ health_check() {
   echo "━━━ Health Check ━━━"
 
   if ! command -v headroom &>/dev/null && ! $is_fork; then
-    echo "⚠️  Headroom CLI não encontrado no PATH."
+    echo "⚠️  Headroom CLI not found in PATH."
     return
   fi
 
@@ -154,11 +154,11 @@ health_check() {
     status=$(echo "$health" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
     echo "✓ Headroom proxy: $status (localhost:8787)"
   elif $is_fork; then
-    echo "  ⚠️  Proxy ainda não subiu — esperado no headroomgate."
-    echo "      Complete o bootstrap (headroom auth init-db, create-user, etc.)"
-    echo "      e reinicie: systemctl --user restart headroom.service"
+    echo "  ⚠️  Proxy not up yet — expected for headroomgate."
+    echo "      Complete the bootstrap (headroom auth init-db, create-user, etc.)"
+    echo "      and restart: systemctl --user restart headroom.service"
   else
-    echo "⚠️  Proxy não respondeu após ${attempts}s. Verificar:"
+    echo "⚠️  Proxy did not respond after ${attempts}s. Check:"
     echo "   systemctl --user status headroom.service"
     echo "   journalctl --user -u headroom.service -n 20"
   fi
@@ -167,9 +167,8 @@ health_check() {
 # ---- summary common -------------------------------------------------------
 summary_common() {
   echo ""
-  echo "  Comandos Claude Code disponíveis:"
-  echo "    /mem               → listar memórias"
-  echo "    /headroom_usage  → dashboard de economia"
-  echo "    (use /reload se não aparecerem)"
+  echo "  Available Claude Code commands:"
+  echo "    /headroom_usage  → savings dashboard"
+  echo "    (use /reload if they don't appear)"
   echo ""
 }

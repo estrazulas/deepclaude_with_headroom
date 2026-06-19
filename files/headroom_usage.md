@@ -1,35 +1,35 @@
 ---
 title: /headroom_usage
-description: Exibe estatísticas de economia do Headroom proxy (compressão, cache, tokens salvos)
+description: Display Headroom proxy savings statistics (compression, cache, tokens saved)
 argument-hint: [-v | -j | -p]
 ---
 
 !`/home/estrazulas/.claude/commands/bin/headroom_usage $ARGUMENTS`
 
-Exibe um dashboard com as estatísticas de economia do Headroom proxy rodando em `localhost:8787`.
+Display a dashboard with savings statistics from the Headroom proxy running at `localhost:8787`.
 
 ## Uso
 
 ```
-/headroom_usage          → dashboard formatado
-/headroom_usage -v       → JSON completo do /stats
-/headroom_usage -j       → JSON bruto
-/headroom_usage -p       → métricas no formato Prometheus
+/headroom_usage          → formatted dashboard
+/headroom_usage -v       → full /stats JSON
+/headroom_usage -j       → raw JSON
+/headroom_usage -p       → Prometheus metrics
 ```
 
-## Dados exibidos
+## Displayed data
 
-- Sessão atual (requests, tokens, economia %)
-- Lifetime acumulado
-- Compressão aplicada (média, melhor caso, estratégias)
+- Current session (requests, tokens, savings %)
+- Lifetime accumulated
+- Compression applied (average, best case, strategies)
 - Cache hit rate
-- Performance (latência, overhead do Headroom, TTFB)
-- Modelos usados
-- Últimas requisições com savings por req
-- Estimativa de economia em USD (se configurada)
+- Performance (latency, Headroom overhead, TTFB)
+- Models used
+- Last requests with savings per request
+- Estimated savings in USD (if configured)
 
-## Requisitos
+## Requirements
 
-- Headroom proxy rodando em `localhost:8787`
-  → Verifique com `systemctl --user status headroom.service`
-- `jq` instalado para formatação do JSON
+- Headroom proxy running at `localhost:8787`
+  → Check with `systemctl --user status headroom.service`
+- `jq` installed for JSON formatting

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# setup_local_hr_gate.sh — HeadroomGate fork, proxy local, com auth
+# setup_local_hr_gate.sh — HeadroomGate fork, local proxy, with auth
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -28,8 +28,8 @@ EXTRAS="proxy,code,mcp"
 if $FULL; then EXTRAS="all"; fi
 EXTRAS="${EXTRAS},auth"
 
-banner "Modo: Proxy local — HeadroomGate (com auth + auditoria)"
-$DRY_RUN && echo "[dry-run] Simulando..." && echo ""
+banner "Mode: Local proxy — HeadroomGate (with auth + audit)"
+$DRY_RUN && echo "[dry-run] Simulating..." && echo ""
 
 check_prerequisites
 
@@ -39,15 +39,15 @@ add_claude_permissions "$DRY_RUN"
 
 # 2. Headroom CLI + Auth Plugin
 echo ""
-echo "━━━ 2. HeadroomGate CLI + Plugin Auth ━━━"
+echo "━━━ 2. HeadroomGate CLI + Auth Plugin ━━━"
 
 if [ -z "$HEADROOM_RELEASE" ]; then
-  echo "  ⚠️  --headroom-release é obrigatório para headroomgate."
-  echo "  Ex: --headroom-release https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-....whl"
+  echo "  ⚠️  --headroom-release is required for headroomgate."
+  echo "  Example: --headroom-release https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-....whl"
   exit 1
 fi
 
-# Auto-derivar auth plugin URL
+# Auto-derive auth plugin URL
 if [ -z "$HEADROOM_AUTH_RELEASE" ]; then
   HEADROOM_AUTH_RELEASE=$(echo "$HEADROOM_RELEASE" | sed 's|/headroom_ai-[^/]*$|/headroom_auth-0.1.0-py3-none-any.whl|')
 fi
@@ -67,19 +67,19 @@ else
     curl -fsSL -o "$local_whl" "$HEADROOM_RELEASE"
     local_hash=$(sha256sum "$local_whl" | awk '{print $1}')
     if [ "$local_hash" != "$HEADROOM_SHA256" ]; then
-      echo "❌ SHA256 main não confere! Esperado: $HEADROOM_SHA256 Obtido: $local_hash"
+      echo "❌ SHA256 main mismatch! Expected: $HEADROOM_SHA256 Got: $local_hash"
       rm -f "$local_whl"
       exit 1
     fi
-    echo "✓ SHA256 main confere"
+    echo "✓ SHA256 main matches"
     INSTALL_TARGET="${local_whl}[$EXTRAS]"
   else
-    echo "  ⚠️  Sem --headroom-sha256. Pulando verificação."
+    echo "  ⚠️  No --headroom-sha256. Skipping verification."
     INSTALL_TARGET="${HEADROOM_RELEASE}[$EXTRAS]"
   fi
 
   pipx install --force "$INSTALL_TARGET"
-  echo "✓ headroom $(headroom --version) instalado"
+  echo "✓ headroom $(headroom --version) installed"
 
   # Auth plugin
   local_auth="/tmp/$(basename "$HEADROOM_AUTH_RELEASE")"
@@ -87,21 +87,21 @@ else
     curl -fsSL -o "$local_auth" "$HEADROOM_AUTH_RELEASE"
     local_hash=$(sha256sum "$local_auth" | awk '{print $1}')
     if [ "$local_hash" != "$HEADROOM_AUTH_SHA256" ]; then
-      echo "❌ SHA256 auth não confere! Esperado: $HEADROOM_AUTH_SHA256 Obtido: $local_hash"
+      echo "❌ SHA256 auth mismatch! Expected: $HEADROOM_AUTH_SHA256 Got: $local_hash"
       rm -f "$local_auth"
       exit 1
     fi
-    echo "✓ SHA256 auth confere"
+    echo "✓ SHA256 auth matches"
     pipx inject headroom-ai "$local_auth"
   else
     pipx inject headroom-ai "$HEADROOM_AUTH_RELEASE"
   fi
-  echo "✓ Plugin headroom-auth instalado"
+  echo "✓ Plugin headroom-auth installed"
 fi
 
 # 2b. Auth config
 echo ""
-echo "━━━ 2b. Config Auth: Neo4j + Encryption ━━━"
+echo "━━━ 2b. Auth Config: Neo4j + Encryption ━━━"
 
 NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
 NEO4J_USER="${NEO4J_USER:-neo4j}"
@@ -112,7 +112,7 @@ _write_config() {
   mkdir -p "$HEADROOM_CONFIG_DIR"
   cat > "$HEADROOM_CONFIG_FILE" << INNER
 # HeadroomGate Auth Configuration
-# Lido por headroom.service e deepclaudehr.
+# Read by headroom.service and deepclaudehr.
 HEADROOM_API_KEY="${API_KEY}"
 HEADROOM_ENCRYPTION_KEY="${ENCRYPTION_KEY}"
 HEADROOM_PROXY_URL="http://localhost:8787"
@@ -157,20 +157,20 @@ _db_has_users() {
 }
 
 if $DRY_RUN; then
-  echo "[dry-run] Perguntaria: ja tem Neo4j + encryption key?"
-  echo "[dry-run] Se sim: pede credenciais e keys existentes"
-  echo "[dry-run] Se nao: detecta se Neo4j acessivel, oferece bootstrap automatico"
-  echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE"
+  echo "[dry-run] Would ask: already have Neo4j + encryption key?"
+  echo "[dry-run] If yes: ask for existing credentials and keys"
+  echo "[dry-run] If no: detect Neo4j reachable, offer auto bootstrap"
+  echo "[dry-run] Would create $HEADROOM_CONFIG_FILE"
 else
   API_KEY="YOUR_HEADROOM_API_KEY_HERE"
   ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
 
   echo ""
-  echo "  Se voce ja configurou o Neo4j antes, pode informar as chaves."
-  echo "  Se nao, o installer pode fazer o bootstrap agora (init-db,"
-  echo "  criar admin, gerar API key + encryption key)."
+  echo "  If you've already configured Neo4j, you can provide the keys."
+  echo "  If not, the installer can bootstrap now (init-db,"
+  echo "  create admin, generate API key + encryption key)."
   echo ""
-  read -r -p "  Ja tem Neo4j + encryption key configurados? [S/n]: " has_existing </dev/tty
+  read -r -p "  Already have Neo4j + encryption key configured? [Y/n]: " has_existing </dev/tty
   has_existing="${has_existing:-S}"
 
   if [[ "$has_existing" =~ ^[SsYy] ]]; then
@@ -182,31 +182,31 @@ else
     read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
     echo ""
     read -r -p "  HEADROOM_ENCRYPTION_KEY: " ENCRYPTION_KEY </dev/tty
-    read -r -p "  HEADROOM_API_KEY (hr_..., Enter se nao tiver): " input </dev/tty
+    read -r -p "  HEADROOM_API_KEY (hr_..., Enter if none): " input </dev/tty
     [ -n "$input" ] && API_KEY="$input"
 
     _write_config
     echo "✓ $HEADROOM_CONFIG_FILE"
 
     if _try_connect; then
-      echo "  ✓ Neo4j conectado ($NEO4J_URI) — proxy pronto"
+      echo "  ✓ Neo4j connected ($NEO4J_URI) — proxy ready"
     else
-      echo "  ⚠️  Neo4j nao acessivel. Verifique: $NEO4J_URI"
+      echo "  ⚠️  Neo4j not reachable. Check: $NEO4J_URI"
     fi
   else
     # ---- Fresh / empty Neo4j: offer bootstrap ----
     echo ""
     if _try_connect; then
-      echo "  ✓ Neo4j conectado ($NEO4J_URI)"
+      echo "  ✓ Neo4j connected ($NEO4J_URI)"
       echo ""
-      echo "  Nenhum usuario encontrado. Posso fazer o bootstrap agora:"
+      echo "  No users found. I can bootstrap now:"
       echo "    - init-db (constraints + roles)"
       echo "    - create-user admin --role admin"
-      echo "    - create-key admin (gera API key)"
+      echo "    - create-key admin (generates API key)"
       echo "    - generate-key (encryption key)"
-      echo "    - Escrever tudo em $HEADROOM_CONFIG_FILE"
+      echo "    - Write everything to $HEADROOM_CONFIG_FILE"
       echo ""
-      read -r -p "  Fazer bootstrap automatico? [S/n]: " do_bootstrap </dev/tty
+      read -r -p "  Run auto bootstrap? [Y/n]: " do_bootstrap </dev/tty
       do_bootstrap="${do_bootstrap:-S}"
 
       if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
@@ -217,7 +217,7 @@ else
         ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
         _write_config
         echo ""
-        echo "  ✓ Bootstrap concluido!"
+        echo "  ✓ Bootstrap complete!"
         echo "  API_KEY:        ${API_KEY}"
         echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
       else
@@ -226,7 +226,7 @@ else
       fi
     else
       # Neo4j not reachable — ask for credentials, try again
-      echo "  🗄️  Neo4j nao acessivel em $NEO4J_URI."
+      echo "  🗄️  Neo4j not reachable at $NEO4J_URI."
       echo ""
       read -r -p "  NEO4J_URI [$NEO4J_URI]: " input </dev/tty; NEO4J_URI="${input:-$NEO4J_URI}"
       read -r -p "  NEO4J_USER [$NEO4J_USER]: " input </dev/tty; NEO4J_USER="${input:-$NEO4J_USER}"
@@ -234,9 +234,9 @@ else
       read -r -p "  QDRANT_URL [$QDRANT_URL]: " input </dev/tty; QDRANT_URL="${input:-$QDRANT_URL}"
 
       if _try_connect; then
-        echo "  ✓ Neo4j conectado!"
+        echo "  ✓ Neo4j connected!"
         echo ""
-        read -r -p "  Fazer bootstrap agora? [S/n]: " do_bootstrap </dev/tty
+        read -r -p "  Run bootstrap now? [Y/n]: " do_bootstrap </dev/tty
         do_bootstrap="${do_bootstrap:-S}"
         if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
           headroom auth init-db -y 2>&1 | sed 's/^/  /'
@@ -244,7 +244,7 @@ else
           API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
           ENCRYPTION_KEY=$(headroom auth generate-key 2>&1 | tail -1)
           _write_config
-          echo "  ✓ Bootstrap concluido!"
+          echo "  ✓ Bootstrap complete!"
           echo "  API_KEY:        ${API_KEY}"
           echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
         else
@@ -253,19 +253,19 @@ else
         fi
       else
         _write_config
-        echo "  ⚠️  Ainda sem conexao. Edite depois: $HEADROOM_CONFIG_FILE"
+        echo "  ⚠️  Still no connection. Edit later: $HEADROOM_CONFIG_FILE"
       fi
     fi
   fi
 fi
 
-# 3. Systemd service (COM auth)
+# 3. Systemd service (WITH auth)
 echo ""
 echo "━━━ 3. Headroom Proxy (systemd) ━━━"
 if [ -f "$SCRIPT_DIR/files/deepclaude/headroom.service" ]; then
   mkdir -p "$SYSTEMD_USER_DIR"
   if $DRY_RUN; then
-    echo "[dry-run] Copiaria headroom.service com auth"
+    echo "[dry-run] Would copy headroom.service with auth"
     echo "[dry-run] systemctl daemon-reload + enable + start"
   else
     systemctl --user stop headroom.service 2>/dev/null || true
@@ -277,18 +277,18 @@ if [ -f "$SCRIPT_DIR/files/deepclaude/headroom.service" ]; then
     systemctl --user enable headroom.service
     if command -v headroom &>/dev/null; then
       systemctl --user restart headroom.service 2>/dev/null || systemctl --user start headroom.service 2>/dev/null || true
-      echo "✓ headroom.service instalado (auth + log-messages)"
+      echo "✓ headroom.service installed (auth + log-messages)"
     fi
   fi
 else
-  echo "⚠️  headroom.service não encontrado"
+  echo "⚠️  headroom.service not found"
 fi
 
-# 4. DEEPSEEK_API_KEY (pulado no headroomgate)
+# 4. DEEPSEEK_API_KEY (skipped on headroomgate)
 echo ""
 echo "━━━ 4. DEEPSEEK_API_KEY ━━━"
-echo "✓ HeadroomGate: provider key no Neo4j (headroom auth set-provider-key)"
-echo "  O comando 'deepclaude' (direto) precisará da chave depois."
+echo "✓ HeadroomGate: provider key in Neo4j (headroom auth set-provider-key)"
+echo "  The 'deepclaude' command (direct) will need the key later."
 
 # 5. DeepClaude
 install_deepclaude_commands "$DRY_RUN" "$SCRIPT_DIR/files/deepclaude"
@@ -301,8 +301,8 @@ fi
 # Summary
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✅ Instalação concluída!"
-echo "  🔐 HeadroomGate (auth + auditoria)"
+echo "  ✅ Installation complete!"
+echo "  🔐 HeadroomGate (auth + audit)"
 echo ""
 echo "  Proxy:  systemctl --user status headroom.service"
 echo "  Health: curl localhost:8787/health"
@@ -312,14 +312,14 @@ echo "  ════════════════════════
 echo "  export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
 echo "  headroom auth init-db"
 echo "  headroom auth create-user admin --role admin --team admin"
-echo "  headroom auth create-key admin           ← salve o hr_..."
-echo "  headroom auth generate-key               ← salve a chave"
+echo "  headroom auth create-key admin           ← save the hr_..."
+echo "  headroom auth generate-key               ← save the key"
 echo "  headroom auth set-provider-key admin anthropic"
 echo ""
-echo "  Edite ~/.config/headroom/env com as chaves e reinicie:"
+echo "  Edit ~/.config/headroom/env with the keys and restart:"
 echo "  systemctl --user restart headroom.service"
 echo ""
-echo "  Comandos:"
-echo "    deepclaude       → Claude Code via DeepSeek (direto)"
+echo "  Commands:"
+echo "    deepclaude       → Claude Code via DeepSeek (direct)"
 echo "    deepclaudehr     → Claude Code via HeadroomGate proxy"
 summary_common

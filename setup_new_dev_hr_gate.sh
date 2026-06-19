@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# setup_new_dev_hr_gate.sh — Dev client, conecta em proxy HeadroomGate remoto
-# NÃO instala: pipx, headroom CLI, systemd, Neo4j, Qdrant
+# setup_new_dev_hr_gate.sh — Dev client, connects to remote HeadroomGate proxy
+# Does NOT install: pipx, headroom CLI, systemd, Neo4j, Qdrant
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -19,30 +19,30 @@ while [[ $# -gt 0 ]]; do
   shift
 done
 
-banner "Modo: Dev remoto — HeadroomGate (conecta em proxy existente)"
-$DRY_RUN && echo "[dry-run] Simulando..." && echo ""
+banner "Mode: Remote dev — HeadroomGate (connect to existing proxy)"
+$DRY_RUN && echo "[dry-run] Simulating..." && echo ""
 
 check_prerequisites
 
-# 1. Coletar dados de conexão
-echo "━━━ 1. Conexão com o proxy ━━━"
-echo "  Peça ao admin da sua equipe:"
-echo "    - URL do proxy (ex: http://10.0.2.2:8787)"
-echo "    - Sua API key (hr_...)"
+# 1. Collect connection data
+echo "━━━ 1. Proxy Connection ━━━"
+echo "  Ask your team admin:"
+echo "    - Proxy URL (e.g. http://10.0.2.2:8787)"
+echo "    - Your API key (hr_...)"
 echo ""
 
 if [ -z "$PROXY_URL" ]; then
-  read -r -p "  URL do proxy [http://10.0.2.2:8787]: " PROXY_URL </dev/tty
+  read -r -p "  Proxy URL [http://10.0.2.2:8787]: " PROXY_URL </dev/tty
   PROXY_URL="${PROXY_URL:-http://10.0.2.2:8787}"
 fi
 PROXY_URL="${PROXY_URL%/}"
 
 if [ -z "$API_KEY" ]; then
-  read -r -p "  Sua HEADROOM_API_KEY (hr_...): " API_KEY </dev/tty
+  read -r -p "  Your HEADROOM_API_KEY (hr_...): " API_KEY </dev/tty
 fi
 
 if [ -z "$API_KEY" ] || [ "$API_KEY" = "hr_" ]; then
-  echo "❌ HEADROOM_API_KEY inválida. Peça ao admin e tente novamente."
+  echo "❌ Invalid HEADROOM_API_KEY. Ask your admin and try again."
   exit 1
 fi
 
@@ -50,11 +50,11 @@ echo ""
 echo "  Proxy: $PROXY_URL"
 echo "  Key:   ${API_KEY:0:10}..."
 
-# 2. Criar config
+# 2. Create config
 echo ""
-echo "━━━ 2. Configuração ━━━"
+echo "━━━ 2. Configuration ━━━"
 if $DRY_RUN; then
-  echo "[dry-run] Criaria $HEADROOM_CONFIG_FILE"
+  echo "[dry-run] Would create $HEADROOM_CONFIG_FILE"
 else
   mkdir -p "$HEADROOM_CONFIG_DIR"
   cat > "$HEADROOM_CONFIG_FILE" << INNER
@@ -74,34 +74,34 @@ add_claude_permissions "$DRY_RUN"
 # 4. DeepClaude commands
 install_deepclaude_commands "$DRY_RUN" "$SCRIPT_DIR/files/deepclaude"
 
-# 5. Testar conexão com proxy remoto
+# 5. Test connection to remote proxy
 echo ""
-echo "━━━ 3. Testando conexão ━━━"
+echo "━━━ 3. Testing Connection ━━━"
 if $DRY_RUN; then
   echo "[dry-run] curl -sf $PROXY_URL/health"
 else
   if health=$(curl -sf "$PROXY_URL/health" 2>/dev/null); then
     status=$(echo "$health" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status','?'))" 2>/dev/null)
-    echo "✓ Proxy respondeu: $status ($PROXY_URL)"
+    echo "✓ Proxy responded: $status ($PROXY_URL)"
   else
-    echo "  ⚠️  Proxy não respondeu em $PROXY_URL"
-    echo "      Verifique a URL e se o proxy do admin está rodando."
-    echo "      O deepclaudehr só funcionará quando o proxy estiver acessível."
+    echo "  ⚠️  Proxy did not respond at $PROXY_URL"
+    echo "      Check the URL and that the admin's proxy is running."
+    echo "      deepclaudehr will only work when the proxy is reachable."
   fi
 fi
 
 # Summary
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "  ✅ Configuração concluída!"
-echo "  🔐 Dev cliente — HeadroomGate remoto"
+echo "  ✅ Configuration complete!"
+echo "  🔐 Dev client — Remote HeadroomGate"
 echo ""
-echo "  Proxy remoto: $PROXY_URL"
+echo "  Remote proxy: $PROXY_URL"
 echo "  Config:       $HEADROOM_CONFIG_FILE"
 echo ""
-echo "  Comandos:"
-echo "    deepclaude       → Claude Code via DeepSeek (direto)"
+echo "  Commands:"
+echo "    deepclaude       → Claude Code via DeepSeek (direct)"
 echo "    deepclaudehr     → Claude Code via HeadroomGate ($PROXY_URL)"
 echo ""
-echo "  O deepclaudehr já usa sua HEADROOM_API_KEY automaticamente."
+echo "  deepclaudehr automatically uses your HEADROOM_API_KEY."
 summary_common

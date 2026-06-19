@@ -42,7 +42,6 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 | **deepclaude** | Terminal command — Claude Code via DeepSeek |
 | **deepclaudehr** | Terminal command — Claude Code via Headroom proxy (with optional auth) |
 | **`/headroom_usage`** | Claude Code slash command — proxy savings dashboard |
-| **`/mem`** | Claude Code slash command — persistent memory browser |
 | **DEEPSEEK_API_KEY** | Auto-configured in shell (.zshrc/.bashrc) |
 | **`~/.config/headroom/env`** | Auth config (headroomgate fork only, created as template) |
 
@@ -71,7 +70,7 @@ DeepClaude provides the Claude Code ↔ DeepSeek bridge. Headroom adds context c
 ```bash
 git clone https://github.com/estrazulas/deepclaude_with_headroom.git
 cd deepclaude_with_headroom
-bash install.sh   # launcher interativo — escolha o modo
+bash install.sh   # interactive launcher — choose the mode
 ```
 
 ### Installation modes
@@ -82,34 +81,34 @@ install.sh (launcher)
 ├─ [1] setup_local_hr_only.sh
 │   └─ Proxy local (original PyPI)
 │       ├── pipx install headroom-ai[proxy,code,mcp]
-│       ├── systemd service (sem auth)
+│       ├── systemd service (no auth)
 │       ├── DEEPSEEK_API_KEY → ~/.zshrc
 │       ├── deepclaude + deepclaudehr
-│       └── /mem, /headroom_usage
+│       └── /headroom_usage
 │
 ├─ [2] setup_local_hr_gate.sh
 │   └─ Proxy local (headroomgate fork)
 │       ├── pipx install headroom-ai[proxy,code,mcp,auth]
 │       ├── pipx inject headroom-auth (plugin)
 │       ├── ~/.config/headroom/env (Neo4j + Qdrant)
-│       ├── systemd service (COM auth + log-messages)
+│       ├── systemd service (WITH auth + log-messages)
 │       ├── deepclaude + deepclaudehr
-│       ├── /mem, /headroom_usage
-│       └── 📋 Bootstrap instructions (admin cria keys)
+│       ├── /headroom_usage
+│       └── 📋 Bootstrap instructions (admin creates keys)
 │
 └─ [3] setup_new_dev_hr_gate.sh
-    └─ Dev cliente (proxy REMOTO)
+    └─ Dev client (REMOTE proxy)
         ├── ~/.config/headroom/env (PROXY_URL + API_KEY)
         ├── deepclaude + deepclaudehr
-        ├── /mem, /headroom_usage
-        └── ❌ sem pipx, systemd, Neo4j, Qdrant
+        ├── /headroom_usage
+        └── ❌ no pipx, systemd, Neo4j, Qdrant
 ```
 
-| Mode | Proxy | Auth | Neo4j | Ideal para |
+| Mode | Proxy | Auth | Neo4j | Ideal for |
 |:----:|:-----:|:----:|:-----:|------------|
-| 1 | localhost | ❌ | ❌ | Uso pessoal, compressão |
-| 2 | localhost | ✅ | ✅ | Admin que gerencia o time |
-| 3 | **remoto** | ✅ | ❌ | Dev que usa o proxy do admin |
+| 1 | localhost | ❌ | ❌ | Personal use, compression |
+| 2 | localhost | ✅ | ✅ | Admin managing the team |
+| 3 | **remote** | ✅ | ❌ | Dev using admin's proxy |
 
 ### 🔐 Headroomgate — Auth + Audit (recommended for teams)
 
@@ -166,7 +165,7 @@ Installs `headroom-ai[proxy,code,mcp]` (~100 MB), prompting before each step:
 - Headroom CLI (via pipx)
 - Headroom proxy as a systemd service (auto-start)
 - `deepclaude` and `deepclaudehr` terminal commands
-- `/headroom_usage` and `/mem` slash commands
+- `/headroom_usage` slash command
 - `DEEPSEEK_API_KEY` in your shell config
 - Health check at the end
 
@@ -189,8 +188,6 @@ Installs `headroom-ai[all]` (~2 GB) without prompting — includes vector memory
 /headroom_usage -v       → full /stats JSON
 /headroom_usage -j       → raw JSON
 /headroom_usage -p       → Prometheus metrics
-/mem                     → list memories
-/mem <term>              → search memory content
 ```
 
 ### Terminal commands
