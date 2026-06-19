@@ -1,7 +1,0 @@
-Thanks, Tejas — I really appreciate the invitation!
-
-To be transparent, I haven't modified Headroom's core behavior. I mainly reviewed the packaging and dependencies before building my custom release. I plan to eventually add a data sanitization / safeguards layer for removing sensitive information before sending to the LLM — something I'll explore for internal use down the line.
-
-So far my real contribution has been on the integration/installation side — making it easy to run the DeepClaude script with Headroom inside Claude's harness, with the flexibility to use either the official PyPI package or a custom build.
-
-In the future I'd be happy to contribute the installation script and docs to the Headroom repo if that's useful for others, and I'd appreciate any tips on using safeguard models within Headroom.
