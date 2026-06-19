@@ -108,6 +108,26 @@ export NEO4J_USER="${NEO4J_USER:-neo4j}"
 export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
 export QDRANT_URL="${QDRANT_URL:-http://localhost:6333}"
 
+# Offer to store the Anthropic provider key in Neo4j (requires NEO4J_* env vars)
+_configure_provider_key() {
+  echo ""
+  echo "  🔑 Store your Anthropic API key in Neo4j so the proxy can use it."
+  echo "  (Skip if you don't have it yet — you can run this later manually.)"
+  read -r -p "  Store Anthropic provider key now? [Y/n]: " store_key </dev/tty
+  store_key="${store_key:-S}"
+  if [[ "$store_key" =~ ^[SsYy] ]]; then
+    if headroom auth set-provider-key admin anthropic; then
+      PROVIDER_KEY_SET=true
+      echo "  ✓ Provider key stored for role 'admin' (provider: anthropic)"
+    else
+      echo "  ⚠️  Failed to store provider key. Run manually later:"
+      echo "      headroom auth set-provider-key admin anthropic"
+    fi
+  else
+    echo "  (Skipped. Run later: headroom auth set-provider-key admin anthropic)"
+  fi
+}
+
 # Auto-generate encryption key if missing (env → config file → generate)
 if ! $DRY_RUN && command -v headroom &>/dev/null; then
   if [ -z "${HEADROOM_ENCRYPTION_KEY:-}" ] && [ -f "$HEADROOM_CONFIG_FILE" ]; then
@@ -288,6 +308,8 @@ else
         echo "  ✓ Bootstrap complete!"
         echo "  API_KEY:        ${API_KEY}"
         echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+        PROVIDER_KEY_SET=false
+        _configure_provider_key
       else
         _write_config
         echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
@@ -319,6 +341,8 @@ else
           echo "  ✓ Bootstrap complete!"
           echo "  API_KEY:        ${API_KEY}"
           echo "  ENCRYPTION_KEY: ${ENCRYPTION_KEY}"
+          PROVIDER_KEY_SET=false
+          _configure_provider_key
         else
           _write_config
           echo "  ✓ $HEADROOM_CONFIG_FILE (template)"
@@ -384,10 +408,17 @@ echo ""
     echo "  🛡️  Auth bootstrap: DONE"
     echo "  ════════════════════════════════════"
     echo "  API key and encryption key are in $HEADROOM_CONFIG_FILE"
-    echo ""
-    echo "  Next: store your provider key and restart the proxy:"
-    echo "    headroom auth set-provider-key admin anthropic"
-    echo "    systemctl --user restart headroom.service"
+    if ${PROVIDER_KEY_SET:-false}; then
+      echo "  🔑 Provider key: DONE"
+      echo ""
+      echo "  The proxy is ready. Restart if you haven't already:"
+      echo "    systemctl --user restart headroom.service"
+    else
+      echo ""
+      echo "  Next: store your provider key and restart the proxy:"
+      echo "    headroom auth set-provider-key admin anthropic"
+      echo "    systemctl --user restart headroom.service"
+    fi
   else
     echo "  🛡️  Auth bootstrap: PENDING"
     echo "  ════════════════════════════════════"
