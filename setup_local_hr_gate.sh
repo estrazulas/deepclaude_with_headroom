@@ -119,7 +119,7 @@ if ! $DRY_RUN && command -v headroom &>/dev/null; then
     ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | head -1)
     if [ -n "$ENCRYPTION_KEY" ]; then
       export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
-      echo "  ✓ Encryption key generated"
+      echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
     fi
   else
     ENCRYPTION_KEY="$HEADROOM_ENCRYPTION_KEY"
@@ -206,6 +206,22 @@ _start_services() {
   return 1
 }
 
+# Ensure encryption key is set — generate if still a placeholder
+_ensure_encryption_key() {
+  if [[ "$ENCRYPTION_KEY" == "YOUR_ENCRYPTION_KEY_HERE" || -z "$ENCRYPTION_KEY" ]]; then
+    echo ""
+    echo "  🔑 Encryption key not set. Generating a new one..."
+    ENCRYPTION_KEY=$(headroom auth generate-key 2>/dev/null | head -1)
+    if [ -n "$ENCRYPTION_KEY" ]; then
+      export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+      echo "  ✓ Encryption key generated: ${ENCRYPTION_KEY}"
+    else
+      echo "  ⚠️  Could not generate encryption key. Run manually: headroom auth generate-key"
+      ENCRYPTION_KEY="YOUR_ENCRYPTION_KEY_HERE"
+    fi
+  fi
+}
+
 if $DRY_RUN; then
   echo "[dry-run] Would ask: already have Neo4j + encryption key?"
   echo "[dry-run] If yes: ask for existing credentials and keys"
@@ -257,6 +273,7 @@ else
       echo "    - create-key admin (generates API key)"
       echo "    - Write everything to $HEADROOM_CONFIG_FILE"
       echo ""
+      echo "  (Bootstrap = create database schema, admin user, and API key)"
       read -r -p "  Run auto bootstrap? [Y/n]: " do_bootstrap </dev/tty
       do_bootstrap="${do_bootstrap:-S}"
 
@@ -265,7 +282,7 @@ else
         headroom auth init-db -y 2>&1 | sed 's/^/  /'
         headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
         API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-        export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+        _ensure_encryption_key
         _write_config
         echo ""
         echo "  ✓ Bootstrap complete!"
@@ -290,13 +307,14 @@ else
       if _try_connect; then
         echo "  ✓ Neo4j connected!"
         echo ""
+        echo "  (Bootstrap = create database schema, admin user, and API key)"
         read -r -p "  Run bootstrap now? [Y/n]: " do_bootstrap </dev/tty
         do_bootstrap="${do_bootstrap:-S}"
         if [[ "$do_bootstrap" =~ ^[SsYy] ]]; then
           headroom auth init-db -y 2>&1 | sed 's/^/  /'
           headroom auth create-user admin --role admin --team admin 2>&1 | sed 's/^/  /'
           API_KEY=$(headroom auth create-key admin 2>&1 | grep -oP 'hr_[a-f0-9]+' || echo "")
-          export HEADROOM_ENCRYPTION_KEY="$ENCRYPTION_KEY"
+          _ensure_encryption_key
           _write_config
           echo "  ✓ Bootstrap complete!"
           echo "  API_KEY:        ${API_KEY}"
@@ -361,17 +379,30 @@ echo ""
 echo "  Proxy:  systemctl --user status headroom.service"
 echo "  Health: curl localhost:8787/health"
 echo ""
-echo "  🛡️  BOOTSTRAP AUTH:"
-echo "  ════════════════════════════════════"
-echo "  export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
-echo "  headroom auth init-db"
-echo "  headroom auth create-user admin --role admin --team admin"
-echo "  headroom auth create-key admin           ← save the hr_..."
-echo "  headroom auth generate-key               ← save the key"
-echo "  headroom auth set-provider-key admin anthropic"
-echo ""
-echo "  Edit ~/.config/headroom/env with the keys and restart:"
-echo "  systemctl --user restart headroom.service"
+  # Check if bootstrap was completed or needs manual steps
+  if [ -f "$HEADROOM_CONFIG_FILE" ] && grep -q 'hr_[a-f0-9]\{64\}' "$HEADROOM_CONFIG_FILE" 2>/dev/null; then
+    echo "  🛡️  Auth bootstrap: DONE"
+    echo "  ════════════════════════════════════"
+    echo "  API key and encryption key are in $HEADROOM_CONFIG_FILE"
+    echo ""
+    echo "  Next: store your provider key and restart the proxy:"
+    echo "    headroom auth set-provider-key admin anthropic"
+    echo "    systemctl --user restart headroom.service"
+  else
+    echo "  🛡️  Auth bootstrap: PENDING"
+    echo "  ════════════════════════════════════"
+    echo "  The proxy needs an admin user + API key. Run:"
+    echo ""
+    echo "  export NEO4J_URI=$NEO4J_URI NEO4J_USER=$NEO4J_USER NEO4J_PASSWORD=$NEO4J_PASSWORD"
+    echo "  headroom auth init-db -y"
+    echo "  headroom auth create-user admin --role admin --team admin"
+    echo "  headroom auth create-key admin           ← save the hr_..."
+    echo "  headroom auth generate-key               ← save the key"
+    echo "  headroom auth set-provider-key admin anthropic"
+    echo ""
+    echo "  Then edit $HEADROOM_CONFIG_FILE with the keys and:"
+    echo "  systemctl --user restart headroom.service"
+  fi
 echo ""
 echo "  Commands:"
 echo "    deepclaude       → Claude Code via DeepSeek (direct)"
