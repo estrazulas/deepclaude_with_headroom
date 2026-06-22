@@ -5,6 +5,7 @@
 services:
   neo4j:
     image: neo4j:5.26
+    restart: unless-stopped
     ports:
       - "0.0.0.0:7474:7474"  # HTTP Browser
       - "0.0.0.0:7687:7687"  # Bolt
@@ -19,6 +20,7 @@ services:
 
   qdrant:
     image: qdrant/qdrant:v1.17.1
+    restart: unless-stopped
     ports:
       - "0.0.0.0:6333:6333"  # REST API
       - "0.0.0.0:6334:6334"  # gRPC
