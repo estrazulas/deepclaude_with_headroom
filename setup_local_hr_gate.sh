@@ -50,7 +50,7 @@ echo "━━━ 2. HeadroomGate CLI + Auth Plugin ━━━"
 
 if [ -z "$HEADROOM_RELEASE" ]; then
   echo "  ⚠️  --headroom-release is required for headroomgate."
-  echo "  Example: --headroom-release https://github.com/estrazulas/headroomgate/releases/download/v0.26.0.1/headroom_ai-0.26.0.1-....whl"
+  echo "  Example: --headroom-release https://github.com/estrazulas/headroomgate/releases/download/v0.27.0.1/headroom_ai-0.27.0.1-....whl"
   exit 1
 fi
 

@@ -7,7 +7,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 DRY_RUN=false
 FULL=false
-HEADROOM_VERSION="0.25.0"
+HEADROOM_VERSION="0.27.0"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
