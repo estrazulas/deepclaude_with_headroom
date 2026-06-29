@@ -2,7 +2,7 @@
   <h1>🪄 DeepClaude + Headroom / Gate</h1>
   <p><strong>Automated setup of Headroom AI proxy with DeepClaude for Claude Code via DeepSeek API</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/headroom-0.27.0-blue" alt="Headroom">
+    <img src="https://img.shields.io/badge/headroom-0.27.0.1-blue" alt="Headroom">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
     <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Linux">
   </p>
@@ -118,8 +118,8 @@ The [headroomgate](https://github.com/estrazulas/headroomgate) fork adds multi-u
 ```bash
 bash install.sh \
   --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.27.0.1/headroom_ai-0.27.0.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "9d804853a898b3fea3f3d91f96e9605a473aaa36b333c993a8cf9efc1b1aaba1" \
-  --headroom-auth-sha256 "3709318db7b8300f747fcc42303a06794f61929f237826812ccaec4f3f5db17e"
+  --headroom-sha256 "6d28c19ba30fc3440b6845f7597b660d3b283ee071c7b599f4c1d69169c1b44c" \
+  --headroom-auth-sha256 "dc9e0dacd2d1e753243d7f153c92c98b430c9759a7dfd75fd62b5f9b16fd2678"
 ```
 
 The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `headroom_auth`). Use `--headroom-auth-release` / `--headroom-auth-sha256` for explicit control.
