@@ -2,11 +2,18 @@
 # Helper script for /headroom_usage command
 # Display Headroom proxy savings statistics
 
-STATS=$(curl -sf http://localhost:8787/stats 2>/dev/null)
+# Load environment (HEADROOM_API_KEY required for /stats endpoint)
+ENV_FILE="$HOME/.config/headroom/env"
+if [ -f "$ENV_FILE" ]; then
+  source "$ENV_FILE"
+fi
+
+STATS=$(curl -sf -H "Authorization: Bearer ${HEADROOM_API_KEY}" http://localhost:8787/stats 2>/dev/null)
 
 if [ -z "$STATS" ]; then
   echo "❌ Headroom proxy is not responding at localhost:8787"
   echo "   Check with: systemctl --user status headroom.service"
+  echo "   Or the HEADROOM_API_KEY in ~/.config/headroom/env is missing/wrong"
   exit 1
 fi
 
@@ -28,7 +35,7 @@ fi
 
 # Formatted dashboard
 echo "╔══════════════════════════════════════╗"
-echo "║   📊 HEADROOM ECONOMY               ║"
+echo "║   📊 HEADROOM USAGE                  ║"
 echo "╚══════════════════════════════════════╝"
 echo ""
 
