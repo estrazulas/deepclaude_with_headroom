@@ -6,11 +6,15 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/headroom proxy --memory --learn --code-aware --anthropic-api-url https://api.deepseek.com/anthropic __HEADROOM_EXTRA_ARGS__
+ExecStart=%h/.local/bin/headroom proxy --memory --learn --code-aware --mode token --target-ratio 0.6 --anthropic-api-url https://api.deepseek.com/anthropic __HEADROOM_EXTRA_ARGS__
 Restart=on-failure
 RestartSec=5
 Environment=HEADROOM_HOST=127.0.0.1
 Environment=HEADROOM_PORT=8787
+Environment=HEADROOM_PROTECT_TOOL_RESULTS=Bash
+Environment=HEADROOM_OUTPUT_SHAPER=1
+Environment=HEADROOM_EFFORT_ROUTER=1
+Environment=HEADROOM_VERBOSITY_LEVEL=2
 __HEADROOM_ENVIRONMENT_FILE__
 
 # --- Security hardening (user-service compatible) ---
