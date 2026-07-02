@@ -15,8 +15,14 @@ Run **Claude Code** using the **DeepSeek API** (drastically cheaper) with the **
 
 > 💰 DeepSeek V4 Pro: ~$0.44/M input vs Anthropic: ~$3.00/M input  
 > 💰 DeepSeek V4 Pro: ~$0.87/M output vs Anthropic: ~$15.00/M output  
-> 📉 Headroom saves an additional 5–16% via context compression  
-> 🎥 [How Headroom saves tokens](https://youtu.be/UOWSHg18cL0) — by the creator [@chopratejas](https://github.com/chopratejas)
+> 📉 Headroom saves an additional 5–16% via context compression + output shaping  
+> 🎥 [How Headroom saves tokens](https://youtu.be/UOWSHg18cL0) — by the creator [@chopratejas](https://github.com/chopratejas)  
+> 📊 [Why use DeepClaude with Headroom](benchmark/) — by [@estrazulas](https://github.com/estrazulas)  
+>  
+> | Scenario | Direct | Proxy | Saved |  
+> |---|---|---|---|  
+> | Building a CLI app from scratch | $0.0126 | $0.0116 | **-8.2%** |  
+> | Debugging production incidents | $0.0126 | $0.0106 | **-16.2%** |
 
 ---
 
@@ -260,25 +266,6 @@ HEADROOM_ENCRYPTION_KEY="your_generated_encryption_key"
 ```
 
 No provider keys are stored here — they live encrypted in Neo4j, decrypted on-the-fly by the auth middleware.
-
-## 💡 Why use Headroom
-
-The systemd service ships with an optimized profile based on real benchmarks
-comparing direct DeepSeek API calls vs routing through the proxy.
-
-| Scenario | Direct cost | Proxy cost | Saved |
-|---|---|---|---|
-| Building a CLI app from scratch | $0.0126 | $0.0116 | **-8.2%** |
-| Debugging production incidents | $0.0126 | $0.0106 | **-16.2%** |
-
-Most savings come from the **Output Shaper** — it trims verbose model
-responses without sacrificing accuracy. Output tokens are the expensive
-part of the bill ($0.87/M); cutting 20–28% of output more than offsets
-the proxy's input overhead.
-
-> 📊 **[Full benchmark results & methodology](benchmark/)** —
-> per-turn token breakdowns, cost analysis, when the proxy helps (and when it doesn't),
-> and how to run the benchmark yourself against your own setup.
 
 Set automatically by deepclaude:
 
