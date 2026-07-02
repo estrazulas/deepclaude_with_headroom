@@ -261,47 +261,24 @@ HEADROOM_ENCRYPTION_KEY="your_generated_encryption_key"
 
 No provider keys are stored here — they live encrypted in Neo4j, decrypted on-the-fly by the auth middleware.
 
-## ⚡ Optimized defaults (output shaper + compressão)
+## 💡 Why use Headroom
 
-O systemd service já vem com um perfil otimizado baseado em benchmarks
-reais comparando chamadas diretas à DeepSeek vs via proxy:
+The systemd service ships with an optimized profile based on real benchmarks
+comparing direct DeepSeek API calls vs routing through the proxy.
 
-**CLI flags na unit:**
-```
---code-aware --mode token --target-ratio 0.6
-```
-
-**Env vars na unit:**
-```
-HEADROOM_PROTECT_TOOL_RESULTS=Bash   # preserva output de Bash
-HEADROOM_OUTPUT_SHAPER=1             # motor de controle de verbosidade
-HEADROOM_EFFORT_ROUTER=1             # reduz effort em turnos mecânicos
-HEADROOM_VERBOSITY_LEVEL=2           # respostas diretas mas completas
-```
-
-**O que cada um faz:**
-
-| Parâmetro | Efeito | Impacto |
-|---|---|---|
-| `--mode token` | Compressão ativa de input | Reduz logs de build/CI em até 99% |
-| `--target-ratio 0.6` | Kompress mantém ~60% dos tokens | Seguro para código (sem perda de lógica) |
-| `HEADROOM_OUTPUT_SHAPER=1` | Controla verbosidade das respostas | ⭐ Maior impacto: output é a parte mais cara ($0.87/M) |
-| `HEADROOM_EFFORT_ROUTER=1` | Baixa effort em turnos mecânicos | Economiza em leitura de arquivos, testes passando |
-| `HEADROOM_PROTECT_TOOL_RESULTS=Bash` | Bash nunca sofre compressão lossy | Debug: stack traces e erros sempre intactos |
-
-**Resultados do benchmark** (DeepSeek V4 Pro, 4 turnos por cenário):
-
-| Cenário | Sem proxy | Com proxy | Economia |
+| Scenario | Direct cost | Proxy cost | Saved |
 |---|---|---|---|
-| Dev (criando app) | $0.0126 | $0.0116 | -8.2% |
-| Debug (investigando bugs) | $0.0126 | $0.0106 | -16.2% |
+| Building a CLI app from scratch | $0.0126 | $0.0116 | **-8.2%** |
+| Debugging production incidents | $0.0126 | $0.0106 | **-16.2%** |
 
-> 📊 [Resultado completo e metodologia](https://github.com/estrazulas/headroom_benchmark)
+Most savings come from the **Output Shaper** — it trims verbose model
+responses without sacrificing accuracy. Output tokens are the expensive
+part of the bill ($0.87/M); cutting 20–28% of output more than offsets
+the proxy's input overhead.
 
-Para ambientes diferentes, ajuste `--mode` e `--target-ratio`:
-- **Muito log de CI/CD:** mantenha `--mode token`, baixe `--target-ratio` para `0.4`
-- **Maioria código, pouco log:** troque para `--mode cache` (maximiza cache hits)
-- **Máxima segurança (zero perda):** adicione `HEADROOM_LOSSLESS_ONLY=1`
+> 📊 **[Full benchmark results & methodology](benchmark/)** —
+> per-turn token breakdowns, cost analysis, when the proxy helps (and when it doesn't),
+> and how to run the benchmark yourself against your own setup.
 
 Set automatically by deepclaude:
 

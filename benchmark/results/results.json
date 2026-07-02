@@ -1,0 +1,46 @@
+[
+  {
+    "label": "Dev Direto",
+    "cenario": "dev",
+    "total_in": 499,
+    "total_cache": 256,
+    "total_out": 14236,
+    "total_real_in": 755,
+    "total_tokens": 14991,
+    "cost": 0.012605904,
+    "duration_s": 223.6948
+  },
+  {
+    "label": "Dev Proxy",
+    "cenario": "dev",
+    "total_in": 3775,
+    "total_cache": 11136,
+    "total_out": 11341,
+    "total_real_in": 14911,
+    "total_tokens": 26252,
+    "cost": 0.011572214,
+    "duration_s": 146.7082
+  },
+  {
+    "label": "Debug Direto",
+    "cenario": "debug",
+    "total_in": 11628,
+    "total_cache": 31232,
+    "total_out": 8457,
+    "total_real_in": 42860,
+    "total_tokens": 51317,
+    "cost": 0.012598837999999998,
+    "duration_s": 144.7012
+  },
+  {
+    "label": "Debug Proxy",
+    "cenario": "debug",
+    "total_in": 11668,
+    "total_cache": 41344,
+    "total_out": 6042,
+    "total_real_in": 53012,
+    "total_tokens": 59054,
+    "cost": 0.010555835999999999,
+    "duration_s": 100.67429999999999
+  }
+]
