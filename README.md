@@ -124,8 +124,8 @@ The [headroomgate](https://github.com/estrazulas/headroomgate) fork adds multi-u
 ```bash
 bash install.sh \
   --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.0/headroom_ai-0.27.2.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "839713da269e48be1723e031482b97e82db8225f568db0ccc7ad8ab1f5b808e3" \
-  --headroom-auth-sha256 "0704703ddb9ed5b1edaf9eae03e16ccd1f2c327d197c1d3586df19d5ed076af0"
+  --headroom-sha256 "dfc532ab67ec85b1c912467d57c9dc6a664945db9d52beca26d1740742e91746" \
+  --headroom-auth-sha256 "e4d89de534df47efe56b35611816978e7e43146448ec5be7268f59cf5d03547f"
 ```
 
 The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `headroom_auth`). Use `--headroom-auth-release` / `--headroom-auth-sha256` for explicit control.
