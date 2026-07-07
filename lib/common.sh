@@ -147,12 +147,11 @@ install_deepclaude_commands() {
 
   if [ -f "$dc_src/deepclaude.sh" ]; then
     if $dry; then
-      echo "[dry-run] Would install: /usr/local/bin/deepclaude (+x)"
-      echo "[dry-run] Would install: /usr/local/bin/deepclaudehr (+x)"
+      echo "[dry-run] Would symlink: $dc_src/deepclaude.sh → /usr/local/bin/deepclaude"
+      echo "[dry-run] Would symlink: $dc_src/deepclaudehr.sh → /usr/local/bin/deepclaudehr"
     else
-      sudo cp "$dc_src/deepclaude.sh" /usr/local/bin/deepclaude
-      sudo cp "$dc_src/deepclaudehr.sh" /usr/local/bin/deepclaudehr
-      sudo chmod +x /usr/local/bin/deepclaude /usr/local/bin/deepclaudehr
+      sudo ln -sf "$dc_src/deepclaude.sh" /usr/local/bin/deepclaude
+      sudo ln -sf "$dc_src/deepclaudehr.sh" /usr/local/bin/deepclaudehr
       echo "✓ /usr/local/bin/deepclaude"
       echo "✓ /usr/local/bin/deepclaudehr"
     fi

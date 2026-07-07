@@ -7,9 +7,22 @@
 #
 # The proxy handles:
 #   auth (who you are) → provider key injection → compression → audit log
+#
+# Model selection (for accurate DeepSeek pricing in dashboard):
+#   deepclaudehr              → deepseek-v4-flash (default)
+#   deepclaudehr pro          → deepseek-v4-pro
+#   DEEPSEEK_MODEL=deepseek-v4-pro deepclaudehr
 set -euo pipefail
 
 HEADROOM_ENV="${HOME}/.config/headroom/env"
+
+# Model selection: first positional arg, then env, then default
+MODEL_ARG="${1:-}"
+case "${MODEL_ARG}" in
+  flash|fl) DEEPSEEK_MODEL="deepseek-v4-flash"; shift ;;
+  pro|pr)   DEEPSEEK_MODEL="deepseek-v4-pro";  shift ;;
+  *)        DEEPSEEK_MODEL="${DEEPSEEK_MODEL:-deepseek-v4-flash}" ;;
+esac
 
 # Source auth config if present (headroomgate fork)
 if [ -f "$HEADROOM_ENV" ]; then
@@ -30,4 +43,5 @@ fi
 # Clear provider keys so they cannot bypass the proxy
 unset DEEPSEEK_API_KEY ANTHROPIC_API_KEY OPENAI_API_KEY
 
-exec claude "$@"
+echo "deepclaudehr: model=${DEEPSEEK_MODEL}" >&2
+exec claude --model "${DEEPSEEK_MODEL}" "$@"
