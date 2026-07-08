@@ -2,7 +2,7 @@
   <h1>🪄 DeepClaude + Headroom / Gate</h1>
   <p><strong>Automated setup of Headroom AI proxy with DeepClaude for Claude Code via DeepSeek API</strong></p>
   <p>
-    <img src="https://img.shields.io/badge/headroom-0.27.2.0-blue" alt="Headroom">
+    <img src="https://img.shields.io/badge/headroom-0.27.2.1-blue" alt="Headroom">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
     <img src="https://img.shields.io/badge/platform-linux-lightgrey" alt="Linux">
   </p>
@@ -123,9 +123,9 @@ The [headroomgate](https://github.com/estrazulas/headroomgate) fork adds multi-u
 **Via installer (recommended):**
 ```bash
 bash install.sh \
-  --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.0/headroom_ai-0.27.2.0-cp310-abi3-manylinux_2_35_x86_64.whl" \
-  --headroom-sha256 "dfc532ab67ec85b1c912467d57c9dc6a664945db9d52beca26d1740742e91746" \
-  --headroom-auth-sha256 "e4d89de534df47efe56b35611816978e7e43146448ec5be7268f59cf5d03547f"
+  --headroom-release "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.1/headroom_ai-0.27.2.1-cp310-abi3-manylinux_2_35_x86_64.whl" \
+  --headroom-sha256 "030a772308d45c12ec96679d9f7ae2a5f21cf1712922c4bb161912b7b96b373b" \
+  --headroom-auth-sha256 "56f0805a88fdcd19864581fd32a1b80bd08f8c6534680a0cea060e8e961a4b8e"
 ```
 
 The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `headroom_auth`). Use `--headroom-auth-release` / `--headroom-auth-sha256` for explicit control.
@@ -133,9 +133,9 @@ The auth plugin wheel is auto-derived from the main URL (`headroom_ai` → `head
 **Manual install (2 wheels):**
 ```bash
 pipx install --force \
-  "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.0/headroom_ai-0.27.2.0-cp310-abi3-manylinux_2_35_x86_64.whl[proxy,code,mcp,auth]"
+  "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.1/headroom_ai-0.27.2.1-cp310-abi3-manylinux_2_35_x86_64.whl[proxy,code,mcp,auth]"
 pipx inject headroom-ai \
-  "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.0/headroom_auth-0.1.0-py3-none-any.whl"
+  "https://github.com/estrazulas/headroomgate/releases/download/v0.27.2.1/headroom_auth-0.1.0-py3-none-any.whl"
 ```
 
 After install, follow the **bootstrap instructions** printed by the installer to create your admin user, API key, and provider keys.
